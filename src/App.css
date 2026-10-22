@@ -78,7 +78,7 @@ main {
   gap: 9px;
 }
 
-.eyebrow>span {
+.eyebrow > span {
   width: 6px;
   height: 6px;
   background: #718a4a;
@@ -86,7 +86,7 @@ main {
 }
 
 h1 {
-  font-size: clamp(44px,4.6vw,72px);
+  font-size: clamp(44px, 4.6vw, 72px);
   line-height: 1.08;
   font-weight: 500;
   letter-spacing: -3px;
@@ -94,12 +94,12 @@ h1 {
 }
 
 h1 em {
-  font-family: 'Playfair Display',Georgia,serif;
+  font-family: 'Playfair Display', Georgia, serif;
   font-weight: 500;
   color: #71864e;
 }
 
-.story-panel>p {
+.story-panel > p {
   max-width: 310px;
   font-size: 14px;
   line-height: 1.8;
@@ -211,7 +211,7 @@ h1 em {
 
 .art-note {
   position: absolute;
-  font-family: Georgia,serif;
+  font-family: Georgia, serif;
   font-style: italic;
   font-size: 13px;
   bottom: -8px;
@@ -231,7 +231,7 @@ h1 em {
   align-items: center;
 }
 
-.story-bottom>span {
+.story-bottom > span {
   font-size: 21px;
   color: #7d935d;
 }
@@ -251,7 +251,7 @@ h1 em {
   color: #858d7f;
 }
 
-.progress-meta>span:last-child {
+.progress-meta > span:last-child {
   letter-spacing: 0;
 }
 
@@ -263,16 +263,16 @@ h1 em {
   overflow: hidden;
 }
 
-.progress-track>div {
+.progress-track > div {
   height: 100%;
   background: #7c9453;
-  transition: width .3s;
+  transition: width 0.3s;
 }
 
 .question {
   margin: auto 0;
   padding: 62px 0 45px;
-  animation: arrive .3s ease;
+  animation: arrive 0.3s ease;
 }
 
 .question-kicker {
@@ -284,7 +284,7 @@ h1 em {
   font-weight: 500;
 }
 
-.question-kicker>span:first-child {
+.question-kicker > span:first-child {
   color: #83995d;
   font-size: 12px;
 }
@@ -300,7 +300,7 @@ h1 em {
 }
 
 h2 {
-  font-size: clamp(28px,2.7vw,42px);
+  font-size: clamp(28px, 2.7vw, 42px);
   font-weight: 500;
   line-height: 1.2;
   letter-spacing: -1.4px;
@@ -311,7 +311,7 @@ h2:focus {
   outline: 0;
 }
 
-.description, .completion>p {
+.description, .completion > p {
   font-size: 13px;
   line-height: 1.8;
   color: #858b7d;
@@ -339,14 +339,14 @@ h2:focus {
   padding: 12px 0 16px;
   color: #344c35;
   font-size: 29px;
-  letter-spacing: -.7px;
+  letter-spacing: -0.7px;
 }
 
 .input-row input::placeholder {
   color: #b9c2ae;
 }
 
-.input-row>span {
+.input-row > span {
   font-size: 14px;
   color: #88937b;
 }
@@ -378,7 +378,9 @@ fieldset {
   background: #f4f6ef;
   font-size: 13px;
   cursor: pointer;
-  transition: background .15s,border-color .15s;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
 }
 
 .choice:hover {
@@ -459,14 +461,14 @@ fieldset {
   display: inline-flex;
   align-items: center;
   gap: 25px;
-  transition: background .2s;
+  transition: background 0.2s;
 }
 
 .primary:hover {
   background: #4d693f;
 }
 
-.primary>span {
+.primary > span {
   font-size: 18px;
   line-height: 1;
 }
@@ -497,7 +499,7 @@ fieldset {
   margin-top: 30px;
 }
 
-.privacy>span {
+.privacy > span {
   margin-right: 5px;
 }
 
@@ -510,7 +512,7 @@ footer {
   color: #8c9582;
 }
 
-footer>div {
+footer > div {
   display: flex;
   gap: 5px;
 }
@@ -525,7 +527,7 @@ footer button {
 }
 
 footer button:disabled {
-  opacity: .35;
+  opacity: 0.35;
 }
 
 .completion {
@@ -537,7 +539,7 @@ footer button:disabled {
   margin: 25px 0;
 }
 
-.completion dl>div {
+.completion dl > div {
   display: flex;
   justify-content: space-between;
   gap: 20px;
@@ -571,7 +573,7 @@ footer button:disabled {
   }
 }
 
-@media(min-width:1500px) {
+@media (min-width: 1500px) {
   main {
     max-width: 1600px;
     margin: auto;
@@ -582,7 +584,7 @@ footer button:disabled {
   }
 }
 
-@media(max-width:900px) {
+@media (max-width: 900px) {
   header {
     height: 80px;
   }
@@ -604,7 +606,7 @@ footer button:disabled {
     letter-spacing: -2px;
   }
   .grocery-art {
-    transform: scale(.8);
+    transform: scale(0.8);
     margin-left: -20px;
   }
   .quiz-panel {
@@ -615,7 +617,7 @@ footer button:disabled {
   }
 }
 
-@media(max-width:620px) {
+@media (max-width: 620px) {
   header {
     height: 74px;
     padding: 0 22px;
@@ -646,13 +648,12 @@ footer button:disabled {
   .story-panel h1 em:before {
     content: ' ';
   }
-  .story-panel>p {
+  .story-panel > p {
     font-size: 12px;
     max-width: 100%;
     line-height: 1.6;
   }
-  .grocery-art,
-  .story-bottom {
+  .grocery-art, .story-bottom {
     display: none;
   }
   .quiz-panel {
@@ -679,10 +680,10 @@ footer button:disabled {
   }
 }
 
-@media(prefers-reduced-motion:reduce) {
+@media (prefers-reduced-motion: reduce) {
   * {
-    animation: none!important;
-    transition: none!important;
+    animation: none !important;
+    transition: none !important;
   }
 }
 
