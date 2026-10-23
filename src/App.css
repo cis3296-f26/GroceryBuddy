@@ -1,6 +1,7 @@
 header {
   height: 100px;
   display: flex;
+  justify-content: space-between;
   align-items: center;
   padding: 0 5%;
   border-bottom: 1px solid #e5e8df;
@@ -701,4 +702,295 @@ footer button:disabled {
 
 .review-answer:hover {
   color: #647f44;
+}
+
+.user-welcome{
+  text-align: center;
+  font-size: 45px;
+  color: #2e4b36
+}
+
+.profile-button{
+  padding: 10px 16px;
+  background-color: #647f44;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  display: flex;
+  font-weight: bold;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.profile-button:hover{
+  background-color: #344c35
+}
+
+.dashboard-layout{
+  width: 100%;
+  max-width: 1300px;
+  margin: 0 auto;
+  padding: 20px 40px;
+  box-sizing: border-box;
+  font-size: 0;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.fridge-card{
+  display: inline-block; 
+  vertical-align: top;
+  width: 450px;
+  box-sizing: border-box;  
+  max-width: 100%; 
+  min-height: 450px;
+  background-color: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.08); 
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04); 
+  border-radius: 24px;      
+  padding: 40px 80px;
+  cursor: pointer;          
+  transition: all 0.2s ease;
+  margin-top: 50px;
+  margin-left: 300px;
+  font-size: 16px;
+
+}
+
+.fridge-card:hover{
+  transform: translateY(-3px);
+  background-color: #eeecec
+
+}
+
+.fridge-title{
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 15px;
+  color: #2e4b36;
+}
+
+.fridge-item{
+  background: white;
+  padding: 10px 15px;
+  margin-bottom: 8px;
+  border-radius: 6px;
+  border: 1px solid #dee2e6;
+}
+
+.empty-text{
+  color: #b8c6a4;
+  font-style: italic;
+  margin-top: 20px;
+}
+
+.add-button{
+  width: 100%;
+  padding: 12px 20px;
+  background-color: #344c35;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+  margin-top: auto;
+}
+
+.add-button:active{
+  transform:scale(0.98);
+}
+.add-button:hover{
+  background-color:#2e4b36;
+}
+
+.plus-icon{
+  font-size: 18px;
+  font-weight: bold;
+  line-height: 1;
+}
+
+.dashboard-right{
+  display: inline-block;
+  vertical-align: top;
+  width: calc(100% - 800px); 
+  margin-left: 30px; 
+  margin-top: 50px;
+  box-sizing: border-box;
+  font-size: 16px;
+}
+
+.recipes-button{
+  width: 95%;
+  max-width: 450px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 20px 24px;
+  background-color: #e86e2c;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s ease;
+  margin-left: 80px;
+  margin-bottom: 20px;
+}
+
+.recipes-button:hover{
+  border-color: rgba(0, 123, 255, 0.3);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+  transform: translateY(-2px);
+  background-color: #c95d23;
+}
+
+.recipes-button-title{
+  font-size: 24px;
+  font-weight: Bold;
+  color: #FFFFFF;
+  margin-bottom: 6px;
+}
+
+.recipes-button-description{
+  font-size: 14px;
+  color: #647f44;
+  line-height: 1.4;
+}
+
+.shoppinglist-button{
+  width: 95%;
+  max-width: 450px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 20px 24px;
+  background-color: #ffead1;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s ease;
+  margin-left: 80px;
+  margin-bottom: 20px;
+
+}
+
+.shoppinglist-button:hover{
+  border-color: rgba(0, 123, 255, 0.3);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+  transform: translateY(-2px);
+  background-color: #f3d6b4;
+}
+
+.shoppinglist-button-title{
+  font-size: 24px;
+  font-weight: Bold;
+  color: #344e36;
+  margin-bottom: 6px;
+}
+
+.shoppinglist-button-description{
+  font-size: 14px;
+  color: #647f44;
+  line-height: 1.4;
+}
+
+.waste-button{
+  width: 95%;
+  max-width: 450px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 20px 24px;
+  background-color: #7c8671;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s ease;
+  margin-left: 80px;
+
+}
+
+.waste-button:hover{
+  border-color: rgba(0, 123, 255, 0.3);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+  transform: translateY(-2px);
+  background-color: #6c7364;
+}
+
+.waste-button-title{
+  font-size: 24px;
+  font-weight: Bold;
+  color: #ffffff;
+  margin-bottom: 6px;
+}
+
+.waste-button-description{
+  font-size: 14px;
+  color: #ffffff;
+  line-height: 1.4;
+}
+
+.search-bar-container{
+  position: relative;
+  width: 100%;
+  max-width: 150px;
+  margin-bottom: 0px;
+  margin-left: auto;
+  margin-right: 200px;
+  
+}
+
+.dashboard-search-input{
+  width: 100%;
+  padding: 14px 16px 14px 44px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 16px;
+  background-color: #ffffff;
+  font-size: 14px;
+  color: #1a1a1a;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+  outline: none;
+  box-sizing: border-box;
+  transition: all 0.2s ease;
+}
+
+.dashboard-search-input:hover{
+  border-color: rgba(0, 0, 0, 0.16);
+}
+
+.dashboard-search-input:focus{
+  border-color: rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+}
+
+.dashboard-search-input::placeholder{
+  color: #999;
+}
+
+.search-icon{
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  color: #888;
+  pointer-events: none;
+}
+
+.search-lift-wrapper{
+  margin-top: -10px;
+  margin-bottom: 8px;
 }
