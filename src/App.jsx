@@ -215,6 +215,10 @@ function App() {
       })
   }
 
+  if(confirmed){
+    return <Dashboard answers={answers}/>;
+  }
+
   return (
     <div className="app-shell">
       <header>
@@ -471,6 +475,102 @@ function App() {
         </section>
       </main>
     </div>
+  )
+}
+
+function Dashboard ({answers}){
+
+  const [fridgeItems, setFridgeItems] = useState([]);
+  const handleAdditions = () => {
+    const newItem = prompt("Enter Your Fridge Items Here!");
+    if(newItem && newItem.trim() !== ""){
+      setFridgeItems([...fridgeItems,newItem]);
+    }
+  };
+
+  return (
+    <div className="app-shell">
+      <header>
+        <a className="brand" href="/" aria-label="GroceryBuddy home">
+          <span className="brand-mark">
+            g<span>✳</span>
+          </span>
+          grocerybuddy<span className="brand-dot">.</span>
+        </a>
+        <button
+          type="button"
+          className="profile-button"
+          > Profile
+        </button>
+  
+      </header>
+      <div>
+        <h1 className="user-welcome">Welcome to Your DashBoard {answers.name}!</h1>
+      </div>
+      <div classname="dashboard-layout">
+          <div className="fridge-card" onClick={() => alert("Fridge Clicked")}>
+            <h2 className="fridge-title">My Fridge</h2>
+            {fridgeItems.length === 0 ? (
+              <p className="empty-text">Your Fridge is Empty</p>
+            ) : (
+              <ul>
+                {fridgeItems.map((item,index) => (
+                  <li key={index} className="fridge-item">
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            )
+            }
+
+            <button
+            type="button"
+            className="add-button"
+            onClick={(e)=> {
+              e.stopPropagation();
+              handleAdditions();
+            }}
+            >
+              <span className="plus-icon">+</span>
+              <span>Add Items</span>
+            </button>
+          </div>
+
+
+          <div className="dashboard-right">
+            <button
+            type="button"
+            className="recipes-button"
+            onClick={() => alert("Recipes Button Clicked")}
+            >
+              <span className="recipes-button-title">Get Recipes</span>
+              <span className="recipe-button-description">Let us generate some recipes for you</span>
+            </button>
+            
+
+
+            <button
+            type="button"
+            className="shoppinglist-button"
+            onClick={() => alert("ShoppingList Button Clicked")}
+            >
+              <span className="shoppinglist-button-title">Generate a Shopping List</span>
+              <span className="shoppinglist-button-description">We'll create a list for all of the foods you love!</span>
+            </button>
+            
+            <button
+            type="button"
+            className="waste-button"
+            onClick={() => alert("Prior Wastes Clicked")}
+            >
+              <span className="waste-button-title">Check Your Prior Wastes</span>
+              <span className="waste-button-description">Keep track of what you're not eating</span>
+            </button>
+          </div>
+          
+        </div>
+    </div>
+
   )
 }
 
