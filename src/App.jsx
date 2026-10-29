@@ -13,7 +13,8 @@ const questions = [
     id: 'goal',
     section: 'Your everyday goals',
     title: 'What brings you to GroceryBuddy?',
-    description: 'Pick the thing you’d most like a hand with.',
+    description: 'Pick everything you’d like a hand with.',
+    multi: true,
     options: [
       'Eat more balanced meals',
       'Spend less on groceries',
@@ -125,10 +126,9 @@ const questions = [
     description:
       'Only share this if you’re comfortable. You can choose your units.',
     type: 'number',
-    min: 1,
-    max: 300,
+    ranges: { in: [36, 96], cm: [90, 245] },
     placeholder: 'Your height',
-    units: ['cm', 'in'],
+    units: ['in', 'cm'],
     optional: true,
   },
   {
@@ -137,10 +137,9 @@ const questions = [
     title: 'What’s your current weight?',
     description: 'One last optional detail for your profile.',
     type: 'number',
-    min: 1,
-    max: 1500,
+    ranges: { lb: [60, 700], kg: [27, 320] },
     placeholder: 'Your weight',
-    units: ['kg', 'lb'],
+    units: ['lb', 'kg'],
     optional: true,
   },
 ]
@@ -148,12 +147,13 @@ const questions = [
 function App() {
   const [step, setStep] = useState(0)
   const [answers, setAnswers] = useState({})
-  const [units, setUnits] = useState({ height: 'cm', weight: 'kg' })
+  const [units, setUnits] = useState({ height: 'cm', weight: 'lb' })
   const [details, setDetails] = useState({})
   const [error, setError] = useState('')
   const [finished, setFinished] = useState(false)
   const [editing, setEditing] = useState(false)
   const [confirmed, setConfirmed] = useState(false)
+  const [warned, setWarned] = useState('')
   const heading = useRef(null)
   const q = questions[step]
   const value = answers[q.id] ?? (q.multi ? [] : '')
@@ -172,21 +172,36 @@ function App() {
 
   function submit(event) {
     event.preventDefault()
+    const [min, max] = q.ranges ? q.ranges[units[q.id]] : [q.min, q.max]
+    const unit = q.ranges ? ` ${units[q.id]}` : ''
     if (
       (!q.optional &&
         !(Array.isArray(value) ? value.length : value.trim().length)) ||
       (q.type === 'number' &&
         value !== '' &&
         (!Number.isFinite(Number(value)) ||
-          Number(value) < q.min ||
-          Number(value) > q.max))
+          Number(value) < min ||
+          Number(value) > max))
     ) {
       setError(
         q.type === 'number'
-          ? `Enter a number between ${q.min} and ${q.max}, or skip this question.`
+          ? `Enter a number between ${min} and ${max}${unit}, or skip this question.`
           : 'Please add an answer to keep going.',
       )
       return
+    }
+    if (q.id === 'weight' && value !== '' && answers.height) {
+      const kg = units.weight === 'lb' ? Number(value) * 0.4536 : Number(value)
+      const m =
+        units.height === 'in'
+          ? Number(answers.height) * 0.0254
+          : Number(answers.height) / 100
+      const bmi = kg / (m * m)
+      if ((bmi < 12 || bmi > 90) && warned !== value + units.weight) {
+        setError('Confirm your weight')
+        setWarned(value + units.weight)
+        return
+      }
     }
     if (needsDetail && !details[q.id]?.trim()) {
       setError('Tell us a little more in the field below.')
@@ -383,17 +398,23 @@ function App() {
                     }}
                   />
                   {q.units ? (
-                    <select
+                    <div
+                      className="unit-toggle"
+                      role="group"
                       aria-label={`${q.id} units`}
-                      value={units[q.id]}
-                      onChange={(event) =>
-                        setUnits({ ...units, [q.id]: event.target.value })
-                      }
                     >
                       {q.units.map((unit) => (
-                        <option key={unit}>{unit}</option>
+                        <button
+                          key={unit}
+                          type="button"
+                          className={units[q.id] === unit ? 'active' : ''}
+                          aria-pressed={units[q.id] === unit}
+                          onClick={() => setUnits({ ...units, [q.id]: unit })}
+                        >
+                          {unit}
+                        </button>
                       ))}
-                    </select>
+                    </div>
                   ) : q.unit ? (
                     <span>{q.unit}</span>
                   ) : null}

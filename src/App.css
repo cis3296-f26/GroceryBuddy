@@ -352,12 +352,26 @@ h2:focus {
   color: #88937b;
 }
 
-.input-row select {
-  padding: 8px;
+.unit-toggle {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
   border: 1px solid #d5ddc8;
-  border-radius: 5px;
+  border-radius: 6px;
   background: #f1f4eb;
-  color: #506643;
+}
+
+.unit-toggle button {
+  padding: 6px 12px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #8a9a7c;
+}
+
+.unit-toggle button.active {
+  background: #2f4a2f;
+  color: white;
 }
 
 fieldset {
@@ -994,3 +1008,4 @@ footer button:disabled {
   margin-top: -10px;
   margin-bottom: 8px;
 }
+
