@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import './App.css'
 
+
 const questions = [
   {
     id: 'name',
@@ -481,13 +482,18 @@ function App() {
 function Dashboard ({answers}){
 
   const [fridgeItems, setFridgeItems] = useState([]);
+  const firstLetter = answers?.name ? answers.name.charAt(0).toUpperCase() : '';
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  
+
   const handleAdditions = () => {
     const newItem = prompt("Enter Your Fridge Items Here!");
     if(newItem && newItem.trim() !== ""){
       setFridgeItems([...fridgeItems,newItem]);
     }
   };
-
+  
   return (
     <div className="app-shell">
       <header>
@@ -497,15 +503,14 @@ function Dashboard ({answers}){
           </span>
           grocerybuddy<span className="brand-dot">.</span>
         </a>
-        <button
-          type="button"
-          className="profile-button"
-          > Profile
+        <button className="profile-button">
+          <span className="profile-initial">{firstLetter}.</span>
+          <span className="profile-fullname">{answers.name}</span>
         </button>
   
       </header>
       <div>
-        <h1 className="user-welcome">Welcome to Your DashBoard {answers.name}!</h1>
+        <h1 className="user-welcome">Welcome to Your Dashboard {answers.name}!</h1>
       </div>
       <div classname="dashboard-layout">
           <div className="fridge-card" onClick={() => alert("Fridge Clicked")}>
@@ -526,14 +531,17 @@ function Dashboard ({answers}){
             <button
             type="button"
             className="add-button"
-            onClick={(e)=> {
+            onClick={(e) => {
               e.stopPropagation();
-              handleAdditions();
-            }}
+              setIsModalOpen(true)}}
             >
               <span className="plus-icon">+</span>
               <span>Add Items</span>
             </button>
+            {isModalOpen && (
+              <AddFoodModal onClose={() => setIsModalOpen(false)}/>
+            )}
+            
           </div>
 
 
@@ -567,11 +575,24 @@ function Dashboard ({answers}){
               <span className="waste-button-description">Keep track of what you're not eating</span>
             </button>
           </div>
-          
-        </div>
+      </div>
     </div>
+    )}
 
-  )
+function AddFoodModal({onClose}){
+  return(
+    <div className="add-food-backdrop" onClick={onClose}>
+      <div className="add-food-content" onClick={(e) => e.stopPropagation()}>
+        <div className="add-food-header">
+          <h2>Add Food Here</h2>
+          <button className="add-food-close-button" onClick={onClose}>&times;</button>
+        </div>
+        <p>Enter the items here</p>
+      </div>
+    </div>
+  );
 }
 
+
+/**/
 export default App
