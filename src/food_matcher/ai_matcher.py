@@ -29,10 +29,13 @@ def match_with_ai (food):
     
     response = client.models.generate_content(
         model=MODEL,
-        prompt=prompt,
-        temperature=0.2,
-        max_output_tokens=50,
+        contents=prompt,
+        config=types.GenerateContentConfig(
+            temperature=0.2,
+            max_output_tokens=50,
+        ),
     )
+
     
     return response.text
 
