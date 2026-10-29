@@ -270,8 +270,38 @@ function App() {
           </div>
         </aside>
         <section className="quiz-panel" aria-label="GroceryBuddy onboarding">
+          <nav className="step-nav" aria-label="Question navigation">
+            <button
+              type="button"
+              disabled={step === 0 && !finished}
+              aria-label="Previous question"
+              onClick={() => {
+                if (finished) {
+                  setFinished(false)
+                  move(questions.length - 1)
+                } else move(step - 1)
+              }}
+            >
+              ←
+            </button>
+            <button
+              type="button"
+              disabled={finished}
+              aria-label="Next question"
+              onClick={submit}
+            >
+              →
+            </button>
+          </nav>
           <div className="progress-meta">
-            <span>{progress}% complete</span>
+            <span>
+              {finished
+                ? 'All done!'
+                : step === 0
+                  ? 'Let’s get started'
+                  : `Nice! ${step} of ${questions.length} answered`}
+            </span>
+            <span>{progress}%</span>
           </div>
           <div
             className="progress-track"
@@ -463,36 +493,6 @@ function App() {
               </div>
             </form>
           )}
-          <footer>
-            <span>
-              {finished
-                ? 'Made for your everyday.'
-                : `${String(step + 1).padStart(2, '0')} / ${questions.length}`}
-            </span>
-            <div>
-              <button
-                type="button"
-                disabled={step === 0 && !finished}
-                aria-label="Previous question"
-                onClick={() => {
-                  if (finished) {
-                    setFinished(false)
-                    move(questions.length - 1)
-                  } else move(step - 1)
-                }}
-              >
-                ←
-              </button>
-              <button
-                type="button"
-                disabled={finished}
-                aria-label="Next question"
-                onClick={submit}
-              >
-                →
-              </button>
-            </div>
-          </footer>
         </section>
       </main>
     </div>
