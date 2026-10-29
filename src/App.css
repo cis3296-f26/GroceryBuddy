@@ -247,27 +247,30 @@ h1 em {
 .progress-meta {
   display: flex;
   justify-content: space-between;
-  font-size: 9px;
-  letter-spacing: 1.1px;
-  color: #858d7f;
+  font-size: 13px;
+  letter-spacing: 0.3px;
+  color: #5f6b55;
 }
 
 .progress-meta > span:last-child {
   letter-spacing: 0;
+  font-weight: 600;
+  color: #2f4a2f;
 }
 
 .progress-track {
-  height: 3px;
+  height: 10px;
   background: #e7eadd;
-  margin-top: 12px;
-  border-radius: 5px;
+  margin-top: 10px;
+  border-radius: 999px;
   overflow: hidden;
 }
 
 .progress-track > div {
   height: 100%;
-  background: #7c9453;
-  transition: width 0.3s;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #a3b86d, #647f44);
+  transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .question {
@@ -352,12 +355,26 @@ h2:focus {
   color: #88937b;
 }
 
-.input-row select {
-  padding: 8px;
+.unit-toggle {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
   border: 1px solid #d5ddc8;
-  border-radius: 5px;
+  border-radius: 6px;
   background: #f1f4eb;
-  color: #506643;
+}
+
+.unit-toggle button {
+  padding: 6px 12px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #8a9a7c;
+}
+
+.unit-toggle button.active {
+  background: #2f4a2f;
+  color: white;
 }
 
 fieldset {
@@ -504,21 +521,14 @@ fieldset {
   margin-right: 5px;
 }
 
-footer {
+.step-nav {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: auto;
-  font-size: 10px;
-  color: #8c9582;
-}
-
-footer > div {
-  display: flex;
+  justify-content: flex-end;
   gap: 5px;
+  margin-bottom: 12px;
 }
 
-footer button {
+.step-nav button {
   border: 1px solid #dce2d1;
   background: #f1f4e9;
   border-radius: 5px;
@@ -527,7 +537,7 @@ footer button {
   font-size: 17px;
 }
 
-footer button:disabled {
+.step-nav button:disabled {
   opacity: 0.35;
 }
 
