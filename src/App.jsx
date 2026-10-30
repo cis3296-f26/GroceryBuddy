@@ -1,5 +1,6 @@
-import { useRef, useState } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import './App.css'
+
 
 const questions = [
   {
@@ -502,6 +503,13 @@ function App() {
 function Dashboard ({answers}){
 
   const [fridgeItems, setFridgeItems] = useState([]);
+  const firstLetter = answers?.name ? answers.name.charAt(0).toUpperCase() : '';
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isShoppingModalOpen, setIsShoppingModalOpen] = useState(false);
+  const [pantryItems, setPantryItems] = useState([]);
+
+  
+
   const handleAdditions = () => {
     const newItem = prompt("Enter Your Fridge Items Here!");
     if(newItem && newItem.trim() !== ""){
@@ -509,6 +517,10 @@ function Dashboard ({answers}){
     }
   };
 
+  const handleSaveItem = (newItem) => {
+    setPantryItems((prev) => [...prev, newItem]);
+  };
+  
   return (
     <div className="app-shell">
       <header>
@@ -518,15 +530,14 @@ function Dashboard ({answers}){
           </span>
           grocerybuddy<span className="brand-dot">.</span>
         </a>
-        <button
-          type="button"
-          className="profile-button"
-          > Profile
+        <button className="profile-button">
+          <span className="profile-initial">{firstLetter}.</span>
+          <span className="profile-fullname">{answers.name}</span>
         </button>
   
       </header>
       <div>
-        <h1 className="user-welcome">Welcome to Your DashBoard {answers.name}!</h1>
+        <h1 className="user-welcome">Welcome to Your Dashboard {answers.name}!</h1>
       </div>
       <div classname="dashboard-layout">
           <div className="fridge-card" onClick={() => alert("Fridge Clicked")}>
@@ -547,14 +558,23 @@ function Dashboard ({answers}){
             <button
             type="button"
             className="add-button"
-            onClick={(e)=> {
+            onClick={(e) => {
               e.stopPropagation();
-              handleAdditions();
-            }}
+              setIsModalOpen(true)}}
             >
               <span className="plus-icon">+</span>
               <span>Add Items</span>
             </button>
+            {isModalOpen && (
+              <AddFoodModal 
+              isOpen={isModalOpen}
+              onClose={() => setIsModalOpen(false)}
+              onSaveItem={(newItem) => {
+
+              }}
+              />
+            )}
+            
           </div>
 
 
@@ -573,11 +593,22 @@ function Dashboard ({answers}){
             <button
             type="button"
             className="shoppinglist-button"
-            onClick={() => alert("ShoppingList Button Clicked")}
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsShoppingModalOpen(true);
+            }}
             >
               <span className="shoppinglist-button-title">Generate a Shopping List</span>
               <span className="shoppinglist-button-description">We'll create a list for all of the foods you love!</span>
             </button>
+
+            <ShoppingListModal
+            isOpen={isShoppingModalOpen}
+            onClose={() => setIsShoppingModalOpen(false)}
+            onGenerateList={(config) => {
+
+            }}
+            />
             
             <button
             type="button"
@@ -588,10 +619,293 @@ function Dashboard ({answers}){
               <span className="waste-button-description">Keep track of what you're not eating</span>
             </button>
           </div>
+      </div>
+    </div>
+    )}
+
+function AddFoodModal({isOpen, onClose, onSaveItem}){
+
+  const [query, setQuery] = useState('');
+  const [activeFoodItem, setActiveFoodItem] = useState(null);
+  const [quantity, setQuantity] = useState(1);
+  const [dateType, setDateType] = useState('bestBy');
+  const [selectedDate, setSelectedDate] = useState('');
+  const inputRef = useRef(null);
+
+  useEffect(() => {
+    if (activeFoodItem) {
+      const defaultDate = new Date();
+      defaultDate.setDate(defaultDate.getDate() + 7);
+      setSelectedDate(defaultDate.toISOString().split('T')[0]);
+      setQuantity(1);
+    }
+  }, [activeFoodItem]);
+
+  useEffect(() => {
+    if (isOpen && !activeFoodItem) {
+      setTimeout(() => inputRef.current?.focus(), 50);
+    }
+  }, [isOpen, activeFoodItem]);
+
+  if (!isOpen) return null;
+
+  const resetAndClose = () => {
+    setActiveFoodItem(null);
+    setQuery('');
+    onClose();
+  };
+
+  const handleSelectFood = (foodName) => {
+    if (!foodName.trim()) return;
+    setActiveFoodItem({ name: foodName.trim() });
+  };
+
+  const handleSave = () => {
+    const itemData = {
+      name: activeFoodItem.name,
+      quantity,
+      dateType,
+      date: selectedDate,
+    };
+    if (onSaveItem) onSaveItem(itemData);
+    resetAndClose();
+  };
+
+  return(
+    <div className="add-food-backdrop" onClick={resetAndClose}>
+      <div className="add-food-content" onClick={(e) => e.stopPropagation()}>
+        
+
+        <button className="add-food-close-button" onClick={resetAndClose}>
+          ✕
+        </button>
+
+    
+        {!activeFoodItem ? (
+          <div>
+            <div className="add-food-header">
+              <h2 className="add-food-item-title" style={{ textAlign: 'left', margin: 0 }}>
+                Add Food Item
+              </h2>
+            </div>
+
+            <div className="add-food-search-box">
+              <input
+                ref={inputRef}
+                type="text"
+                className="add-food-input"
+                placeholder="Type any food item..."
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSelectFood(query)}
+              />
+            </div>
+
+            {query.trim() && (
+              <div className="add-food-custom-action">
+                <button 
+                  className="add-food-custom-button" 
+                  onClick={() => handleSelectFood(query)}
+                >
+                  <span>Add item: <strong>"{query}"</strong></span>
+                  <span className="add-food-enter-hint">Press ↵</span>
+                </button>
+              </div>
+            )}
+          </div>
+        ) : (
+
+          <div className="add-food-detail">
+            <div className="add-food-header">
+              <button 
+                onClick={() => setActiveFoodItem(null)} 
+                style={{ background: 'transparent', border: 'none', color: '#ffffff', cursor: 'pointer', padding: 0, fontSize: '0.9rem' }}
+              >
+                ← Back
+              </button>
+            </div>
+
+            <div>
+              <h3 className="add-food-item-title">{activeFoodItem.name}</h3>
+            </div>
+
+       
+            <div className="add-food-group">
+              <label className="add-food-field-label">Quantity</label>
+              <div className="add-food-qty-wrapper">
+                <button 
+                  className="add-food-qty-button" 
+                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                >
+                  -
+                </button>
+                <span className="add-food-qty-val">{quantity}</span>
+                <button 
+                  className="add-food-qty-button" 
+                  onClick={() => setQuantity(quantity + 1)}
+                >
+                  +
+                </button>
+              </div>
+            </div>
+
+   
+            <div className="add-food-group">
+              <label className="add-food-field-label">Date Type</label>
+              <div className="add-food-toggle">
+                <button
+                  type="button"
+                  className={`add-food-toggle-button ${dateType === 'bestBy' ? 'active' : ''}`}
+                  onClick={() => setDateType('bestBy')}
+                >
+                  Best By Date
+                </button>
+                <button
+                  type="button"
+                  className={`add-food-toggle-button ${dateType === 'expiration' ? 'active' : ''}`}
+                  onClick={() => setDateType('expiration')}
+                >
+                  Expiration Date
+                </button>
+              </div>
+            </div>
+
+  
+            <div className="add-food-group">
+              <label className="add-food-field-label">
+                {dateType === 'bestBy' ? 'Best By Date' : 'Expiration Date'}
+              </label>
+              <input
+                type="date"
+                className="add-food-date-input"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+              />
+            </div>
+
+            <div className="add-food-footer">
+              <button 
+                className="add-food-button add-food-button-secondary" 
+                onClick={() => setActiveFoodItem(null)}
+              >
+                Cancel
+              </button>
+              <button 
+                className="add-food-button add-food-button-primary" 
+                onClick={handleSave}
+              >
+                Save Item
+              </button>
+            </div>
+
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+}
+
+const getHighBudget = (budgetVal) => {
+  if (!budgetVal) return 0;
+  if (typeof budgetVal === 'number') return budgetVal;
+  if (Array.isArray(budgetVal)) return Math.max(...budgetVal);
+  if (typeof budgetVal === 'string') {
+    const numbers = budgetVal.match(/\d+/g);
+    if (numbers && numbers.length > 0) {
+      return parseFloat(numbers[numbers.length - 1]);
+    }
+  }
+  return 0;
+};
+
+function ShoppingListModal({ isOpen, onClose, onGenerateList, answers}){
+  
+  const[budget, setBudget] = useState(50);
+  const resetAndClose = () => {
+    setActiveFoodItem(null);
+    setQuery('');
+    onClose();
+  };
+
+  if(!isOpen) return null;
+
+  const handleGenerate = () => {
+    const listConfig = {
+      budget: Number(budget)
+    };
+    if(onGenerateList) onGenerateList(listConfig);
+    onClose();
+  };
+
+  return (
+    
+    <div className="add-food-backdrop" onClick={onClose}>
+      <div className="add-food-content" onClick={(e) => e.stopPropagation}>
+        <button className="add-food-close-button" onClick={resetAndClose}>
+          ✕
+        </button>
+
+        <div className="add-food-header">
+          <h2 className="add-food-item-title" style={{ textAlign: 'left', marin: 0}}>Generate Shopping List</h2>
+        </div>
+
+        <div className="add-food-group" style={{ marginTop: '16px'}} onClick={(e) => e.stopPropagation()}>
+          <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px'}}>
+            <label className="add-food-field-label" style={{ margin: 0}}>Target Budget</label>
+            <span style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#a3be8c', fontFamily: 'monospace' }}>
+              ${budget}
+            </span>
+          </div>
+
+          <input
+            type="range"
+            min="10"
+            max="200"
+            step="5"
+            value={budget}
+            onChange={(e) => setBudget(e.target.value)}
+            style={{
+              width: '100%',
+              accentColor: '#388e55',
+              cursor: 'pointer',
+              margin: '8px 0'
+            }}
+          />
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)' }}>
+            <span>$10</span>
+            <span>$100</span>
+            <span>$200+</span>
+          </div>
           
         </div>
-    </div>
 
+        <div className="add-food-group" style={{ marginTop: '20px' }}>
+          <label className="add-food-field-label">Generated List Preview</label>
+          <div className="generated-preview-container">
+            <span className="preview-placeholder-text">Click generate for shopping list preview</span>
+          </div>
+        </div>
+
+        <div className="add-food-footer" style={{ marginTop: '20px' }}>
+          <button
+            type="button"
+            className="add-food-button add-food-button-secondary"
+            onClick={onClose}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            className="add-food-button add-food-button-primary"
+            onClick={handleGenerate}
+          >
+            Generate List
+          </button>
+        </div>
+      </div>
+    </div>
   )
 }
 
