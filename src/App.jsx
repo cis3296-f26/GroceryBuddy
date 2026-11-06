@@ -949,7 +949,7 @@ function ShoppingListModal({ isOpen, onClose, onGenerateList, answers}){
 }
 
 function RecipesPage({fridgeItems, onBackToDashboard, answers}){
-  const firstLetter = answers?.name ? answers.name.charAt(0).toUpperCase() : 'U';
+  const firstLetter = answers?.name ? answers.name.charAt(0).toUpperCase() : 'Y';
   const[recipes, setRecipes] = useState([
     {
       id: 1,
@@ -976,7 +976,7 @@ function RecipesPage({fridgeItems, onBackToDashboard, answers}){
     {
       id: 2,
       title: 'Creamy Lemon Chicken Orzo',
-      prepTime: '25 minutes',
+      prepTime: '25 mins',
       description: 'A delicious and filling orzo pasta recipe, quick and easy!',
       totalIngredients: 8,
       matchCount: 7,
@@ -1057,13 +1057,13 @@ function RecipesPage({fridgeItems, onBackToDashboard, answers}){
           <button
           onClick={() => setIsFilterModalOpen(true)}
           className="recipe-button-2 recipe-button-2-light"
-          >Filters⚙️</button>
+          >⚙️</button>
         </div>
         <div class="profile-dropdown-container">
        
         <button className="profile-button">
           <span className="profile-initial">{firstLetter}.</span>
-          <span className="profile-fullname">{answers?.name || 'User'}</span>
+          <span className="profile-fullname">{answers?.name || 'You'}</span>
         </button>
         <div className="dropdown-menu">
           <a href="#profile" className="dropdown-item">Your Profile</a>
