@@ -647,6 +647,7 @@ function AddFoodModal({isOpen, onClose, onSaveItem}){
   const [quantity, setQuantity] = useState(1);
   const [dateType, setDateType] = useState('bestBy');
   const [selectedDate, setSelectedDate] = useState('');
+  const [category, setCategory] = useState('Other');
   const inputRef = useRef(null);
 
   useEffect(() => {
@@ -655,6 +656,7 @@ function AddFoodModal({isOpen, onClose, onSaveItem}){
       defaultDate.setDate(defaultDate.getDate() + 7);
       setSelectedDate(defaultDate.toISOString().split('T')[0]);
       setQuantity(1);
+      
     }
   }, [activeFoodItem]);
 
@@ -683,6 +685,7 @@ function AddFoodModal({isOpen, onClose, onSaveItem}){
       quantity,
       dateType,
       date: selectedDate,
+      category,
     };
     if (onSaveItem) onSaveItem(itemData);
     resetAndClose();
@@ -765,6 +768,25 @@ function AddFoodModal({isOpen, onClose, onSaveItem}){
                 </button>
               </div>
             </div>
+
+              <div className="add-food-group">
+                <label className="add-food-field-label">Food Category</label>
+                <div className="category-container">
+                  {['Produce 🍎', 'Dairy 🥛', 'Meat 🍖', 'Pantry 🍪', 'Other 🍱'].map((cat) =>{
+                    const isSelected = category === cat;
+                    return(
+                      <button
+                      key={cat}
+                      type="button"
+                      onClick={() => setCategory(cat)}
+                      className={`category-pill ${isSelected ? 'active' : ''}`}
+                      >
+                        {cat}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
 
    
             <div className="add-food-group">
@@ -1009,7 +1031,7 @@ function RecipesPage({fridgeItems, onBackToDashboard, answers}){
           <button
           onClick={() => setIsFilterModalOpen(true)}
           className="recipe-button-2 recipe-button-2-light"
-          >Filters</button>
+          >Filters⚙️</button>
         </div>
         <div class="profile-dropdown-container">
        

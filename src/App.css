@@ -1410,6 +1410,38 @@ background-color: #2e4b36;
   background-color: #43a763;
 }
 
+.category-container{
+  display: flex;
+  flex-wrap: wrap;
+  width:100%;
+  margin-top: 6px;
+}
+
+.category-pill{
+  flex: 1;
+  padding: 8px 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-align: center;
+  border-radius: 10px;
+  cursor: pointer;
+  background-color: rgba(255, 255, 255, 0.05);
+  color: #ffffff;
+  border: 1px solid #e2e8f0;
+  transition: all 0.2s ease;
+}
+
+.category-pill:hover{
+  background-color: #ffffff;
+  color: #15291b;
+}
+
+.category-pill.active{
+  background-color:#ffffff;
+  color: #15291b;
+  box-shadow: 0 2px 4px rgba(27,67,50,0.2);
+}
+
 .generated-preview-container{
   width: 100%;
   min-height: 120px;
