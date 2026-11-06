@@ -1,5 +1,6 @@
 import { useRef, useState, useEffect } from 'react'
 import './App.css'
+import { api } from './api'
 
 
 const questions = [
@@ -145,7 +146,7 @@ const questions = [
   },
 ]
 
-function App() {
+export function Onboarding({ user }) {
   const [step, setStep] = useState(0)
   const [answers, setAnswers] = useState({})
   const [units, setUnits] = useState({ height: 'cm', weight: 'lb' })
@@ -232,7 +233,7 @@ function App() {
   }
 
   if(confirmed){
-    return <Dashboard answers={answers}/>;
+    return <Dashboard answers={answers} user={user}/>;
   }
 
   return (
@@ -500,36 +501,26 @@ function App() {
   )
 }
 
-function Dashboard ({answers}){
-
-  const [fridgeItems, setFridgeItems] = useState([]);
-  const firstLetter = answers?.name ? answers.name.charAt(0).toUpperCase() : '';
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isShoppingModalOpen, setIsShoppingModalOpen] = useState(false);
-  const [pantryItems, setPantryItems] = useState([]);
-  const[currentView, setCurrentView] = useState('Dashboard')
-
- 
-  if(currentView === 'Recipes'){
-    return(
-      <RecipesPage
-      fridgeItems={fridgeItems}
-      onBackToDashboard={() => setCurrentView('Dashboard')}
-      />
-    );
+function Dashboard ({answers, user}){
+  const [items, setItems] = useState([])
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(true)
+  const firstLetter = user.username.charAt(0).toUpperCase()
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isShoppingModalOpen, setIsShoppingModalOpen] = useState(false)
+  useEffect(() => {
+    let active = true
+    api('inventory/items/').then(data => { if (active) setItems(data) })
+      .catch(error => { if (active) setError(error.message) })
+      .finally(() => { if (active) setLoading(false) })
+    return () => { active = false }
+  }, [])
+  async function handleSaveItem(item) {
+    const saved = await api('inventory/items/', { method: 'POST', body: item })
+    setItems(previous => [...previous, saved])
   }
-
-  const handleAdditions = () => {
-    const newItem = prompt("Enter Your Fridge Items Here!");
-    if(newItem && newItem.trim() !== ""){
-      setFridgeItems([...fridgeItems,newItem]);
-    }
-  };
-
-  const handleSaveItem = (newItem) => {
-    setPantryItems((prev) => [...prev, newItem]);
-  };
-  
+  const [currentView, setCurrentView] = useState('Dashboard')
+  if (currentView === 'Recipes') return <RecipesPage onBackToDashboard={() => setCurrentView('Dashboard')} answers={answers} />
   return (
     <div className="app-shell">
       <header>
@@ -539,11 +530,11 @@ function Dashboard ({answers}){
           </span>
           grocerybuddy<span className="brand-dot">.</span>
         </a>
-        <div class="profile-dropdown-container">
+        <div className="profile-dropdown-container">
        
         <button className="profile-button">
           <span className="profile-initial">{firstLetter}.</span>
-          <span className="profile-fullname">{answers.name}</span>
+          <span className="profile-fullname">{user.username}</span>
         </button>
         <div className="dropdown-menu">
           <a href="#profile" className="dropdown-item">Your Profile</a>
@@ -556,16 +547,18 @@ function Dashboard ({answers}){
       <div>
         <h1 className="user-welcome">Welcome to Your Dashboard {answers.name}!</h1>
       </div>
-      <div classname="dashboard-layout">
-          <div className="fridge-card" onClick={() => alert("Fridge Clicked")}>
+      <div className="dashboard-layout">
+          <div className="fridge-card">
             <h2 className="fridge-title">My Fridge</h2>
-            {fridgeItems.length === 0 ? (
+            {loading && <p role="status">Loading groceries…</p>}
+            {error && <p role="alert">{error}</p>}
+            {items.length === 0 ? (
               <p className="empty-text">Your Fridge is Empty</p>
             ) : (
               <ul>
-                {fridgeItems.map((item,index) => (
-                  <li key={index} className="fridge-item">
-                    {item}
+                {items.map((item) => (
+                  <li key={item.id} className="fridge-item">
+                    {item.name}
                   </li>
                 ))}
               </ul>
@@ -586,9 +579,7 @@ function Dashboard ({answers}){
               <AddFoodModal 
               isOpen={isModalOpen}
               onClose={() => setIsModalOpen(false)}
-              onSaveItem={(newItem) => {
-
-              }}
+              onSaveItem={handleSaveItem}
               />
             )}
             
@@ -622,7 +613,7 @@ function Dashboard ({answers}){
             <ShoppingListModal
             isOpen={isShoppingModalOpen}
             onClose={() => setIsShoppingModalOpen(false)}
-            onGenerateList={(config) => {
+            onGenerateList={() => {
 
             }}
             />
@@ -646,19 +637,11 @@ function AddFoodModal({isOpen, onClose, onSaveItem}){
   const [activeFoodItem, setActiveFoodItem] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [dateType, setDateType] = useState('bestBy');
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
   const [selectedDate, setSelectedDate] = useState('');
   const [category, setCategory] = useState('Other');
   const inputRef = useRef(null);
-
-  useEffect(() => {
-    if (activeFoodItem) {
-      const defaultDate = new Date();
-      defaultDate.setDate(defaultDate.getDate() + 7);
-      setSelectedDate(defaultDate.toISOString().split('T')[0]);
-      setQuantity(1);
-      
-    }
-  }, [activeFoodItem]);
 
   useEffect(() => {
     if (isOpen && !activeFoodItem) {
@@ -676,19 +659,22 @@ function AddFoodModal({isOpen, onClose, onSaveItem}){
 
   const handleSelectFood = (foodName) => {
     if (!foodName.trim()) return;
+    const defaultDate = new Date();
+    defaultDate.setDate(defaultDate.getDate() + 7);
+    setSelectedDate(defaultDate.toISOString().split('T')[0]);
+    setQuantity(1);
+    setSaveError('');
     setActiveFoodItem({ name: foodName.trim() });
   };
 
-  const handleSave = () => {
-    const itemData = {
-      name: activeFoodItem.name,
-      quantity,
-      dateType,
-      date: selectedDate,
-      category,
-    };
-    if (onSaveItem) onSaveItem(itemData);
-    resetAndClose();
+  const handleSave = async () => {
+    setSaving(true)
+    setSaveError('')
+    try {
+      await onSaveItem({ name: activeFoodItem.name, quantity, category: ({ 'Produce 🍎': 'Fruit', 'Dairy 🥛': 'Dairy', 'Meat 🍖': 'Meat', 'Pantry 🍪': 'Pantry' })[category] || 'Pantry', storage_location: 'fridge', expiration_date: selectedDate || null })
+      resetAndClose()
+    } catch (error) { setSaveError(error.message) }
+    finally { setSaving(false) }
   };
 
   return(
@@ -822,6 +808,7 @@ function AddFoodModal({isOpen, onClose, onSaveItem}){
               />
             </div>
 
+            {saveError && <p role="alert">{saveError}</p>}
             <div className="add-food-footer">
               <button 
                 className="add-food-button add-food-button-secondary" 
@@ -831,9 +818,9 @@ function AddFoodModal({isOpen, onClose, onSaveItem}){
               </button>
               <button 
                 className="add-food-button add-food-button-primary" 
-                onClick={handleSave}
+                disabled={saving} onClick={handleSave}
               >
-                Save Item
+                {saving ? 'Saving…' : 'Save Item'}
               </button>
             </div>
 
@@ -845,25 +832,10 @@ function AddFoodModal({isOpen, onClose, onSaveItem}){
   );
 }
 
-const getHighBudget = (budgetVal) => {
-  if (!budgetVal) return 0;
-  if (typeof budgetVal === 'number') return budgetVal;
-  if (Array.isArray(budgetVal)) return Math.max(...budgetVal);
-  if (typeof budgetVal === 'string') {
-    const numbers = budgetVal.match(/\d+/g);
-    if (numbers && numbers.length > 0) {
-      return parseFloat(numbers[numbers.length - 1]);
-    }
-  }
-  return 0;
-};
-
-function ShoppingListModal({ isOpen, onClose, onGenerateList, answers}){
+function ShoppingListModal({ isOpen, onClose, onGenerateList}){
   
   const[budget, setBudget] = useState(50);
   const resetAndClose = () => {
-    setActiveFoodItem(null);
-    setQuery('');
     onClose();
   };
 
@@ -880,7 +852,7 @@ function ShoppingListModal({ isOpen, onClose, onGenerateList, answers}){
   return (
     
     <div className="add-food-backdrop" onClick={onClose}>
-      <div className="add-food-content" onClick={(e) => e.stopPropagation}>
+      <div className="add-food-content" onClick={(e) => e.stopPropagation()}>
         <button className="add-food-close-button" onClick={resetAndClose}>
           ✕
         </button>
@@ -948,9 +920,9 @@ function ShoppingListModal({ isOpen, onClose, onGenerateList, answers}){
   )
 }
 
-function RecipesPage({fridgeItems, onBackToDashboard, answers}){
+function RecipesPage({onBackToDashboard, answers}){
   const firstLetter = answers?.name ? answers.name.charAt(0).toUpperCase() : 'Y';
-  const[recipes, setRecipes] = useState([
+  const[recipes] = useState([
     {
       id: 1,
       title: 'Garlic Butter Chicken and Broccoli',
@@ -1003,7 +975,7 @@ function RecipesPage({fridgeItems, onBackToDashboard, answers}){
 
   const[isLoading, setIsLoading] = useState(false);
   const[error, setError] = useState(null);
-  const[savedFilterActive, setSavedFilterActive] = useState(false);
+  const[savedFilterActive] = useState(false);
   const[isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   const[selectedRecipe, setSelectedRecipe] = useState(null);
   const[activeFilters, setActiveFilters] = useState({
@@ -1011,7 +983,7 @@ function RecipesPage({fridgeItems, onBackToDashboard, answers}){
     useSoonOnly:false,
     maxTime: 'all'
   });
-  const[shoppingList, setShoppingList] = useState([]);
+  const[, setShoppingList] = useState([]);
 
   
 
@@ -1059,7 +1031,7 @@ function RecipesPage({fridgeItems, onBackToDashboard, answers}){
           className="recipe-button-2 recipe-button-2-light"
           >⚙️</button>
         </div>
-        <div class="profile-dropdown-container">
+        <div className="profile-dropdown-container">
        
         <button className="profile-button">
           <span className="profile-initial">{firstLetter}.</span>
@@ -1243,6 +1215,69 @@ function RecipesPage({fridgeItems, onBackToDashboard, answers}){
       )}
     </div>
   );
+}
+
+function App() {
+  const [user, setUser] = useState(null)
+  const [ready, setReady] = useState(false)
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [showLogin, setShowLogin] = useState(true)
+  useEffect(() => {
+    api('accounts/session/').then(data => setUser(data.user))
+      .catch(() => setError('Cannot reach the backend. Start Django and try again.'))
+      .finally(() => setReady(true))
+  }, [])
+  async function signIn(event) {
+    event.preventDefault()
+    const form = new FormData(event.currentTarget)
+    setBusy(true)
+    setError('')
+    try {
+      await api('accounts/session/')
+      const data = await api('accounts/login/', { method: 'POST', body: {
+        username: form.get('username'), password: form.get('password'),
+      } })
+      setUser(data.user)
+      setShowLogin(false)
+      window.history.replaceState(null, '', '/dashboard')
+    } catch (error) { setError(error.message) }
+    finally { setBusy(false) }
+  }
+  if (!showLogin && user) return <Dashboard key={user.id} answers={{ name: user.username }} user={user} />
+  return <div className="app-shell login-preview">
+    <header><a className="brand" href="/" aria-label="GroceryBuddy home">
+      <span className="brand-mark">g<span>✳</span></span>grocerybuddy<span className="brand-dot">.</span>
+    </a><span className="login-note">A little less on your plate.</span></header>
+    <main className="login-layout">
+      <aside className="login-story">
+        <span className="login-kicker">YOUR EVERYDAY GROCERY COMPANION</span>
+        <h1>A full cart.<br />A little less<br /><em>on your plate.</em></h1>
+        <p>Keep track of what’s fresh, make room for good meals, and waste a little less.</p>
+        <div className="login-illustration" aria-hidden="true">🥕 🛍️ 🍅</div>
+      </aside>
+      <section className="login-panel" aria-labelledby="login-title">
+        <div className="login-card">
+          <span className="login-kicker">GOOD TO HAVE YOU BACK</span>
+          <h2 id="login-title">Welcome back.</h2>
+          <p>Your groceries, all in one place. Sign in to get started.</p>
+          <form onSubmit={signIn}>
+            <label htmlFor="login-username">Username</label>
+            <input id="login-username" name="username" autoComplete="username" placeholder="Your username" required disabled={busy} />
+            <label htmlFor="login-password">Password</label>
+            <input id="login-password" name="password" type="password" autoComplete="current-password" placeholder="Your password" required disabled={busy} />
+            {error && <p className="login-error" role="alert">{error}</p>}
+            <button className="primary login-submit" type="submit" disabled={busy || !ready}>{busy ? 'Signing in…' : !ready ? 'Checking connection…' : 'Sign in →'}</button>
+          </form>
+          {user && <button className="login-continue" type="button" onClick={() => {
+            setShowLogin(false)
+            window.history.replaceState(null, '', '/dashboard')
+          }}>Continue as {user.username} →</button>}
+          <p className="login-help">Use your existing GroceryBuddy Django account.</p>
+        </div>
+      </section>
+    </main>
+  </div>
 }
 
 export default App
