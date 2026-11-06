@@ -972,6 +972,32 @@ function RecipesPage({fridgeItems, onBackToDashboard, answers}){
         'Add in your garlic and your broccoli florets to the pan, add a little water then cover for 4 minutes.',
         'Toss everything together in the garlic butter sauce and serve.'
       ]
+    },
+    {
+      id: 2,
+      title: 'Creamy Lemon Chicken Orzo',
+      prepTime: '25 minutes',
+      description: 'A delicious and filling orzo pasta recipe, quick and easy!',
+      totalIngredients: 8,
+      matchCount: 7,
+      saved: true,
+      usesExpiringItem:true,
+      ingredients: [
+        {name: 'Chicken Breast', inFridge:true},
+        {name: 'Garlic', inFridge: true},
+        {name: 'Orzo', inFridge: false},
+        {name: 'Chicken Stock', inFridge: true},
+        {name: 'Lemon', inFridge:true},
+        {name: 'Parmesan', inFridge:true},
+        {name: 'Spinach', inFridge:true},
+        {name: 'Heavy Cream', inFridge:true}
+      ],
+      instructions: [
+        'Fry the chicken pieces in hot oil over medium heat.',
+        'Add the orzo, chicken stock, lemon zest, salt, pepper, and other seasonings (as you like) to a pot.',
+        'Turn down your heat and add in the spinach, cream, and lemon juice. Stir until the spinach wilts and cream has been heated.',
+        'Turn your heat off and mix in your parmesean cheese'
+      ]
     }
   ]);
 
