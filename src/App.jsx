@@ -1151,13 +1151,6 @@ function RecipesPage({fridgeItems, onBackToDashboard, answers}){
                 </label>
               </div>
 
-              <button
-              onClick={() => setIsFilterModalOpen(false)}
-              className="recipe-button-2 recipe-button-2-primary"
-              style={{ width: '100%', marginTop: '16px '}}
-              >
-                Apply Filters
-              </button>
             </div>
           </div>
       )}
