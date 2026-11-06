@@ -4,7 +4,15 @@
 
 Grocery Buddy is a web app that helps college students keep track of their groceries and eat food before it goes bad. Students add groceries in a few quick steps: the food, how much they have, where it is stored (fridge, freezer, or pantry), and the date they bought it. The app estimates how long each item will last and shows a dashboard with labels like "Use Today," "Use Soon," "Good for Now," and "Past Estimate." Students can mark food as used or thrown away, keep a shopping list, and get AI recipe ideas for food that needs to be used soon.
 
-**Project status:** We are just getting started. Right now the app only shows the React + Vite starter page. The features above are planned and will be added during the semester. Our proposal also plans a Python/Django backend and a PostgreSQL database, and we will add those setup steps here when they are ready.
+![Grocery Buddy landing page](docs/landing-page.png)
+
+**Project status:** The app has three pages so far:
+
+- **Landing page:** shows the "EAT ME FIRST." letter tiles, a short description, the four item statuses, three feature cards, and a fridge drawing with sticky notes. Clicking **Sign in** opens onboarding.
+- **Onboarding:** a short quiz about how the student shops and cooks.
+- **Dashboard:** sorts items into the four status columns. It uses sample data for now.
+
+Moving between pages plays a slide animation. Item tracking, the shopping list and AI recipe ideas are still being built, along with the Django backend described below.
 
 ## Installation Instructions
 
