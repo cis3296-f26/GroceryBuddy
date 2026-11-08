@@ -508,7 +508,7 @@ function Dashboard ({answers}){
   const [isShoppingModalOpen, setIsShoppingModalOpen] = useState(false);
   const [pantryItems, setPantryItems] = useState([]);
   const[currentView, setCurrentView] = useState('Dashboard')
-
+  
  
   if(currentView === 'Recipes'){
     return(
@@ -557,17 +557,39 @@ function Dashboard ({answers}){
         <h1 className="user-welcome">Welcome to Your Dashboard {answers.name}!</h1>
       </div>
       <div classname="dashboard-layout">
-          <div className="fridge-card" onClick={() => alert("Fridge Clicked")}>
+          <div className="fridge-card">
             <h2 className="fridge-title">My Fridge</h2>
+
             {fridgeItems.length === 0 ? (
               <p className="empty-text">Your Fridge is Empty</p>
             ) : (
               <ul>
-                {fridgeItems.map((item,index) => (
-                  <li key={index} className="fridge-item">
-                    {item}
-                  </li>
-                ))}
+                {fridgeItems.map((item) => {
+                  const foodStatus = getFoodStatus(item.date);
+
+                  return (
+                    <li key={item.id} className="fridge-item">
+                     
+                      <span className="fridge-item-name">
+                        {item.name}
+                        <span className="fridge-category-emoji">
+                          {item.category?.split(' ').pop()}
+                        </span>
+                      </span>
+                       
+
+                       <div className="fridge-item-bottom">
+                      <span className="fridge-quantity">
+                        x {item.quantity}
+                      </span>
+                    
+                     <span className={`food-status-tag ${foodStatus.status}`}>
+                      {foodStatus.statusLabel}
+                     </span>
+                     </div>
+                    </li>
+                  );
+                })}
               </ul>
             )
             }
@@ -575,8 +597,7 @@ function Dashboard ({answers}){
             <button
             type="button"
             className="add-button"
-            onClick={(e) => {
-              e.stopPropagation();
+            onClick={() => {
               setIsModalOpen(true)}}
             >
               <span className="plus-icon">+</span>
@@ -587,7 +608,7 @@ function Dashboard ({answers}){
               isOpen={isModalOpen}
               onClose={() => setIsModalOpen(false)}
               onSaveItem={(newItem) => {
-
+                setFridgeItems((prevItems) => [...prevItems,newItem]);
               }}
               />
             )}
@@ -639,6 +660,43 @@ function Dashboard ({answers}){
       </div>
     </div>
     )}
+
+function getFoodStatus(dateString){
+  if(!dateString){
+    return{
+      status: 'unknown',
+      statusLabel: 'Date not set'
+    };
+  }
+
+  const today = new Date();
+  const todayUTC = Date.UTC(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate()
+  );
+
+  const [year, month, day] = dateString.split('-').map(Number);
+  const selectedUTC = Date.UTC(year, month - 1, day);
+  const daysUntilDate = Math.round(
+    (selectedUTC - todayUTC) / (1000 * 60 * 60 * 24)
+  );
+
+  if(daysUntilDate < 0){
+    return { status: 'past-date', statusLabel: 'Past estimated date' };
+  }
+
+  if(daysUntilDate === 0){
+    return {status: 'use-today', statusLabel: 'Use today' };
+  }
+
+  if(daysUntilDate <= 3){
+    return {status: 'use-soon', statusLabel: 'Use soon' };
+  }
+
+  return {status: 'still-good', statusLabel: 'Still good'};
+
+}
 
 function AddFoodModal({isOpen, onClose, onSaveItem}){
 
