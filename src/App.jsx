@@ -539,7 +539,7 @@ function Dashboard ({answers}){
           </span>
           grocerybuddy<span className="brand-dot">.</span>
         </a>
-        <div class="profile-dropdown-container">
+        <div className="profile-dropdown-container">
        
         <button className="profile-button">
           <span className="profile-initial">{firstLetter}.</span>
@@ -1018,22 +1018,77 @@ function RecipesPage({fridgeItems, onBackToDashboard, answers}){
   const handleGenerateAiRecipes = async() => {
     setIsLoading(true);
     setError(null);
-
+    
+    try{
+      if(!fridgeItems?.length){
+        setError('Add some ingredients to your fridge before generating recipes.');
+      } 
+      } catch (err){
+        setError('Something went wrong while generating recipes.');
+    } finally {
+      setIsLoading(false);
+    }
     //ai code here
   };
 
+  const toggleSaved = (recipeId) =>{
+    setRecipes((prev) =>
+    prev.map((recipe) =>
+      recipe.id === recipeId
+    ? {...recipe, saved: !recipe.saved}
+    : recipe
+    )
+  );
+
+  setSelectedRecipe((prev) => 
+  prev?.id === recipeId
+    ? {...prev, saved: !prev.saved}
+    : prev
+  );
+  };
+
   const addMissingToShoppingList = (ingredients) => {
-    const missing = ingredients.filter(i => !i.inFridge).map(i => i.name);
-    setShoppingList(prev => [...new Set([...prev, ...missing])]);
-    alert('Missing ingredients added to your shopping list');
+    const missing = ingredients
+    .filter((ingredient) => !ingredient.inFridge)
+    .map((ingredient) => ingredient.name);
+
+    setShoppingList((prev) => [
+      ...new Set([...prev, ...missing]),
+    ]);
+  };
+
+  const getPrepTime = (prepTime) => {
+    const match = prepTime?.match(/\d+/);
+    return match ? Number(match[0]) : 0;
   };
 
   const filteredRecipes = recipes.filter(recipe => {
-    if(savedFilterActive && !recipe.saved)return false;
-    if(activeFilters.cookNowOnly && recipe.matchCount < recipe.totalIngredients) return false;
+    const missingCount = recipe.totalIngredients - recipe.matchCount;
+
+    if(savedFilterActive && !recipe.saved) return false;
+    if(activeFilters.cookNowOnly && missingCount > 0) return false;
+    if(activeFilters.missingOnly && missingCount === 0) return false;
     if(activeFilters.useSoonOnly && !recipe.usesExpiringItem) return false;
+    if(activeFilters.maxTime !== 'all' && getPrepTime(recipe.prepTime) > Number(activeFilters.maxTime)) return false;
     return true;
   });
+
+  const clearFilters = () => {
+    setActiveFilters({
+      cookNowOnly: false,
+      useSoonOnly: false,
+      missingOnly: false,
+      maxTime: 'all',
+    });
+    setSavedFilterActive(false);
+  }
+
+  const hasActiveFilters = 
+  savedFilterActive || 
+  activeFilters.cookNowOnly ||
+  activeFilters.useSoonOnly || 
+  activeFilters.missingOnly ||
+  activeFilters.maxTime !== 'all';
 
   return(
     <div className="recipes-page">
@@ -1057,9 +1112,10 @@ function RecipesPage({fridgeItems, onBackToDashboard, answers}){
           <button
           onClick={() => setIsFilterModalOpen(true)}
           className="recipe-button-2 recipe-button-2-light"
+          aria-label="Open recipe filters"
           >⚙️</button>
         </div>
-        <div class="profile-dropdown-container">
+        <div className="profile-dropdown-container">
        
         <button className="profile-button">
           <span className="profile-initial">{firstLetter}.</span>
@@ -1077,39 +1133,137 @@ function RecipesPage({fridgeItems, onBackToDashboard, answers}){
       <div className="spotlight-banner">
         <div className="spotlight-info">
           <div className="spotlight-text">
-          <h4>AI Recipe Generator</h4>
-          <p>Create custom meals based on your fridge items.</p>
+          <h4>What are we cooking today?</h4>
+          <p>Let us turn your fridge into something delicious.</p>
           </div>
         </div>
         <button
         onClick={handleGenerateAiRecipes}
         disabled={isLoading}
         className="recipe-button-2 recipe-button-2-primary"
-        style={{ fontSize: '0.8rem', padding: '6px 12px'}}
         >
           {isLoading ? 'Generating...' : 'Generate Recipes'}
         </button>
       </div>
 
       {error && (
-        <div style={{padding: '12px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', color: '#b91c1c', fontSize: '0.85rem', marginBottom: '20px'}}
+        <div style={{padding: '12px 16px', background: '#fff3e0', border: '1px solid #e65100', borderRadius: '8px', color: '#9a3412', fontSize: '0.85rem', marginBottom: '20px'}}
+        role="alert"
         >
           {error}
         </div>
       )}
 
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '12px',
+          marginBottom: '20px',
+        }}
+        >
+          <div>
+            <h2
+              style={{
+                color: '#15291b',
+                fontSize: '1.4rem',
+                margin: '0 0 5px'
+              }}
+              >
+                Your Recipes
+            </h2>
+            <p
+            style={{
+              color: '#6b7280',
+              fontSize: '0.85rem',
+              margin: 0,
+            }}
+            >
+              Creating Meals around the items in your fridge.
+            </p>
+          </div>
+
+          <div
+          style={{
+            display: 'flex',
+            gap: '8px',
+            flexWrap: 'wrap'
+          }}
+          >
+            <button
+            className={`recipe-button-2 ${
+              !savedFilterActive ? 'recipe-button-2-primary' : 'recipe-button-2-light'
+            }`}
+            onClick={() => setSavedFilterActive(false)}
+            >
+              All Recipes
+            </button>
+
+            <button
+            className={`recipe-button-2 ${
+              savedFilterActive ? 'recipe-button-2-primary' : 'recipe-button-2-light'
+            }`}
+            onClick={() => setSavedFilterActive(true)}
+            >
+              ❤️Saved
+            </button>
+          </div>
+      </div>
+
+      {hasActiveFilters && (
+        <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          marginBottom: '16px',
+        }}
+        >
+          <span
+          style={{
+            fontSize: '0.8rem',
+            color: '#6b7280',
+          }}
+          >
+            Filters applied
+          </span>
+
+          <button
+          onClick={clearFilters}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: '#2d6a4f',
+            cursor: 'pointer',
+            fontSize: '0.8rem',
+            fontWeight: 600,
+          }}
+          >
+            Clear all
+          </button>
+        </div>
+      )}
+
       {isLoading && (
-        <div className="recipes-grip">
+        <div className="recipes-grid">
           <div className="skeleton-card"></div>
           <div className="skeleton-card"></div>
         </div>
       )}
 
-      {!isLoading && recipes.length === 0 && (
+      {!isLoading && recipes.length > 0 && filteredRecipes.length === 0 &&(
         <div className="empty-state">
             <span style={{fontSize: '2rem', display: 'block', marginBottom: '8px'}}></span>
-            <h3 style={{fontSize: '1rem', fontWeight: 600, margin: '0 0 4px 0', color: '#1b4332'}}>No recipes generate yet</h3>
-            <p style={{fontSize: '0.85rem', color: '#6b7280', margin: 0}}>Click "Generate Recipes" to let the AI suggest some meals.</p>
+            <h3 >No recipes generated yet</h3>
+            <p>Try changing your filters to see more recipes.</p>
+
+            <button
+            onClick={clearFilters}
+            className="recipe-button-2 recipe-button-2-primary"
+            style={{marginTop: '16px'}}
+            > Clear Filters</button>
         </div>
       )}
 
@@ -1120,15 +1274,48 @@ function RecipesPage({fridgeItems, onBackToDashboard, answers}){
             return (
               <div
               key={recipe.id}
-              onClick={() => setSelectedRecipe(recipe)}
               className="recipe-card"
+              onClick={() => setSelectedRecipe(recipe)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' '){
+                  event.preventDefault();
+                  setSelectedRecipe(recipe);
+                }
+              }}
               >
                 <div>
                   <div className="card-header">
                   <h3 className="card-title">{recipe.title}</h3>
-                  <span style={{ fontSize: '0.8rem', color: '#6b7280'}}>{recipe.prepTime}</span>
+
+                  <button
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    toggleSaved(recipe.id);
+                  }}
+                  aria-label={
+                    recipe.saved ? 'Remove from saved recipes' : 'Save Recipe'
+                  }
+
+                  style={{
+                    border: 'none',
+                    background: 'transparent',
+                    color: recipe.saved ? '#e65100' : '#9ca3af',
+                    cursoe: 'pointer',
+                    fintSize: '1.5rem',
+                    flexShrink: 0,
+                  }}
+                  >
+                    {recipe.saved ? '❤️' : '🤍'}
+                  </button>
                   </div>
-                  <p className="ingredient-summary" style={{ display: '-webkit-box',WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+
+                  <div className="card-meta">
+                    <span>⏰ {recipe.prepTime}</span>
+                  </div>
+
+                  <p className="ingredient-summary">
                     {recipe.description}
                   </p>
                 </div>
@@ -1137,7 +1324,7 @@ function RecipesPage({fridgeItems, onBackToDashboard, answers}){
                   <span className={`badge ${missingCount === 0 ? 'badge-green' : 'badge-orange'}`}>
                     {missingCount === 0 ? 'All in fridge' : `Missing ${missingCount}`}
                   </span>
-                  <span style={{fontSize: '0.8rem', fontWeight: 500, color: '#e65100' }}>
+                  <span style={{fontSize: '0.8rem', fontWeight: 500, color: '#2d6a4f' }}>
                   View &rarr;
                   </span>
                 </div>
@@ -1150,9 +1337,9 @@ function RecipesPage({fridgeItems, onBackToDashboard, answers}){
 
       {isFilterModalOpen && (
           <div className="recipe-modal-overlay" onClick={() => setIsFilterModalOpen(false)}>
-            <div className="recipe-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="recipe-modal-content" onClick={(event) => event.stopPropagation()}>
               <div className="recipe-modal-header">
-                <h3 style={{margin: 0, fontSize: '1.1rem', color: '#1b4332'}}>Filter Recipes</h3>
+                <h3 style={{margin: 0, fontSize: '1.1rem', color: '#15291b'}}>Filter Recipes</h3>
                 <button className="recipe-modal-close" onClick={() => setIsFilterModalOpen(false)}>&times;</button>
               </div>
 
@@ -1161,60 +1348,137 @@ function RecipesPage({fridgeItems, onBackToDashboard, answers}){
                   <input
                   type="checkbox"
                   checked={activeFilters.cookNowOnly}
-                  onChange={(e) => setActiveFilters({...activeFilters,cookNowOnly: e.target.checked})}
-                  style={{marginRight: '8px'}}
+                  onChange={(event) => setActiveFilters((prev) => ({
+                    ...prev,
+                    cookNowOnly: event.target.checked,
+                    missingOnly: event.target.checked ? false : prev.missingOnly,
+                  }))
+                  }
+                  
                   />
                   <span>Cook Now (100% Fridge Match)</span>
                 </label>
                 <label>
                   <input
                   type="checkbox"
+                  checked={activeFilters.missingOnly}
+                  onChange={(event) => {
+                    const checked = event.target.checked;
+                    setActiveFilters((prev) => ({
+                      ...prev,
+                      missingOnly: checked,
+                      cookNowOnly: checked ? false : prev.cookNowOnly,
+                    }));
+                  }} 
+                  />
+                  <span>Recipes with Missing Ingredients</span>
+                  </label>
+
+                  <label>
+                  <input
+                  type="checkbox"
                   checked={activeFilters.useSoonOnly}
-                  onChange={(e) => setActiveFilters({...activeFilters, useSoonOnly: e.target.checked})}
-                  style={{marginRight: '8px'}}
+                  onChange={(event) => setActiveFilters({...prev, useSoonOnly: event.target.checked})}
                   />
                   <span>Uses Expiring Ingredients</span>
                 </label>
               </div>
 
+              <div className="filter-group">
+                <h4
+                style={{
+                  fintSize: '0.9rem',
+                  color: '#15291b',
+                  marginBottom: '10px',
+                }}
+                > Maximum Prep Time</h4>
+
+                <select
+                value={activeFilters.maxTime}
+                onChange={(event) => 
+                  setActiveFilters((prev) => ({
+                    ...prev,
+                    maxTime: event.target.value,
+                  }))
+                }
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '8px',
+                  background: '#fff',
+                }}
+                >
+
+                  <option value="all">Any amount of time</option>
+                  <option value="15">15 minutes or less</option>
+                  <option value="30">30 minutes or less</option>
+                  <option value="45">45 minutes or less</option>
+                  <option value="60">60 minutes or less</option>
+                </select>
+              </div>
+                <div
+                style={{
+                  display: 'flex',
+                  gap: '10px',
+                  marginTop: '24px',
+                }}
+                >
+                  <button
+                  className="recipe-button-2 recipe-button-2-light"
+                  onClick={clearFilters}
+                  style={{ flex: 1}}
+                  >Reset</button>
+
+                  <button
+                  className="recipe-button-2 recipe-button-2-primary"
+                  onClick={() => setIsFilterModalOpen(false)}
+                  style={{ flex: 1}}
+                  >Show Recipes</button>
+                </div>
             </div>
           </div>
       )}
 
       {selectedRecipe && (
         <div className="recipe-modal-overlay" onClick={() => setSelectedRecipe(null)}>
-          <div className="recipe-modal-content" onClick={(e) => e.stopPropagation()}>
+          <div className="recipe-modal-content" onClick={(event) => event.stopPropagation()}>
             <div className="recipe-modal-header" style={{alignItems: 'flex-start'}}>
               <div>
                 <span style={{fontSize: '0.8rem', color: '#6b7280'}}>{selectedRecipe.prepTime}</span>
-                <h2 style={{fontSize: '1.25rem', fontWeight: 700, margin: '2px 0 0 0', color: '#1b4332'}}>{selectedRecipe.title}</h2>
+                <h2 style={{fontSize: '1.25rem', fontWeight: 700, margin: '4px 0 0 0', color: '#15291b'}}>{selectedRecipe.title}</h2>
               </div>
-              <button className="recipe-modal-close" onClick={() => setSelectedRecipe(null)}>&times;</button>
+
+              <button className="recipe-modal-close" onClick={() => setSelectedRecipe(null)} aria-label="Close recipe">&times;</button>
             </div>
 
             <p style={{ fontSize: '0.9rem', color: '#4b5563', marginBottom: '20px' }}>{selectedRecipe.description}</p>
 
             <div style={{ marginBottom: '20px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', marginBottom: '8px' }}>
                 <h4 style={{ fontSize: '0.9rem', fontWeight: 600, margin: 0, color: '#1b4332' }}>Ingredients</h4>
-                {selectedRecipe.ingredients?.some(i => !i.inFridge) && (
+                {selectedRecipe.ingredients?.some(
+                  (ingredient) => !ingredient.inFridge) && (
                   <button
                   onClick={() => addMissingToShoppingList(selectedRecipe.ingredients)}
-                  style={{background: 'none', border: 'none', color: '#46643b', fontSize: '0.8rem', fontWeight: 500, cursor: 'pointer'}}
+                  style={{background: 'none', border: 'none', color: '#2d6a4f', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer'}}
                   >
                     + Add missing to shopping list
                   </button>
                 )}
             </div>
 
-            <ul style={{ listStyle: 'none', padding: '12px', margin: 0, background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
-              {selectedRecipe.ingredients?.map((ing, idx) => (
-                <li key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '6px' }}>
-                  <span style={{ color: ing.inFridge ? '#1f2937' : '#dc2626', fontWeight: ing.inFridge ? 400 : 500 }}>
-                    {ing.inFridge ? '✓ ' : 'x '}{ing.name}
-                  </span>
-                  <span style = {{fontSize: '0.75rem', color: ing.inFridge ? '#1b4332' : '#e65100', fontWeight: 600}}>
-                    {ing.inFridge ? 'In Fridge' : "Need to buy"}
+            <ul style={{ listStyle: 'none', padding: '12px', margin: 0, background: '#f7f8f4', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
+              {selectedRecipe.ingredients?.map((ingredient, index) => (
+                <li key={index} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', fontSize: '0.85rem', marginBottom: '6px' }}>
+                    <span 
+                    style={{
+                      color: ingredient.inFridge ? '#1f2937' : '#c2410c', fontWeight: ingredient.inFridge ? 400 : 500,
+                    }}
+                    >{ingredient.inFridge ? '✓ ' : 'x '}{ingredient.name}</span>
+                    
+                  <span style = {{fontSize: '0.75rem', color: ingredient.inFridge ? '#1b4332' : '#e65100', fontWeight: 600, whiteSpace: 'nowrap'}}>
+                    {ingredient.inFridge ? 'In Fridge' : "Need to buy"}
                   </span>
                 </li>
               ))}
@@ -1223,12 +1487,31 @@ function RecipesPage({fridgeItems, onBackToDashboard, answers}){
               
               <div style={{marginBottom: '24px'}}>
               <h4 style={{fontSize: '0.9rem', fontWeight: 600, margin: '0 0 8px 0', color: '#1b4332'}}>Instructions</h4>
-              <ol style={{paddingLeft: '20px', fontSize: '0.85rem', color: '#374161', lineHeight: 1.5, margin: 0}}>
-                {selectedRecipe.instructions?.map((step,idx) => (
-                  <li key={idx} style={{marginBottom: '6px'}}>{step}</li>
+              <ol style={{paddingLeft: '20px', fontSize: '0.85rem', color: '#374161', lineHeight: 1.6, margin: 0}}>
+                {selectedRecipe.instructions?.map((step,index) => (
+                  <li key={index} style={{marginBottom: '6px'}}>{step}</li>
                 ))}
               </ol>
               </div>
+
+              <div
+              style={{display: 'flex',
+                gap: '10px',
+                flexDirection: 'column',
+              }}
+              >
+                <button
+                onClick={() => toggleSaved(selectedRecipe.id)}
+                className="recipe-button-2 recipe-button-2-light"
+                style={{ width: '100%'}}
+                >
+
+                  {selectedRecipe.saved
+                  ? '❤️ Remove from Saved' : '🤍 Save Recipe'
+                  }
+                </button>
+
+              
 
               <button
               onClick={() => {
@@ -1238,6 +1521,7 @@ function RecipesPage({fridgeItems, onBackToDashboard, answers}){
               className="recipe-button-2 recipe-button-2-primary"
               style={{width: '100%'}}
               > Mark as Cooked</button>
+          </div>
           </div>
         </div>
       )}
