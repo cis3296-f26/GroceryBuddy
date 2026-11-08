@@ -739,7 +739,7 @@ function AddFoodModal({isOpen, onClose, onSaveItem}){
 
   const handleSave = () => {
     const itemData = {
-      name: activeFoodItem.name,
+      name: activeFoodItem.name.trim().toLowerCase(),
       quantity,
       dateType,
       date: selectedDate,
