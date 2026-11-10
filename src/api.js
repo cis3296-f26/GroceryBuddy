@@ -15,6 +15,6 @@ export async function api(path, { method = 'GET', body } = {}) {
   if (!response.ok) {
     throw new Error(data?.detail || (data ? Object.entries(data).map(([key, value]) => `${key}: ${value}`).join(' ') : 'Request failed. Please sign in again or check the backend.'))
   }
-  if (data?.csrfToken) csrfToken = data.csrfToken
+  if (data?.csrfToken || data?.csrf_token) csrfToken = data.csrfToken || data.csrf_token
   return data
 }

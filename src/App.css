@@ -1803,3 +1803,11 @@ background-color: #e8f5e9;
   50%{opacity: 1;}
   100%{opacity: 0.6;}
 }
+
+.grocery-details { display: grid; gap: 6px; }
+.grocery-details span { font-size: 13px; }
+.grocery-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.grocery-editor { margin: 18px 0; }
+.grocery-editor fieldset { display: grid; gap: 12px; border: 1px solid #71864e; border-radius: 10px; padding: 16px; }
+.grocery-editor label { display: grid; gap: 5px; }
+.grocery-editor input, .grocery-editor select { width: 100%; box-sizing: border-box; padding: 8px; font: inherit; }
