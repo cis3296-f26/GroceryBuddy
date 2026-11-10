@@ -11,11 +11,11 @@ import { api } from './api'
 const PAGE_ORDER = ['/', '/onboarding', '/dashboard']
 const SLIDE_MS = 500
 
-function PageRoutes({ location }) {
+function PageRoutes({ location, user }) {
   return (
     <Routes location={location}>
       <Route path="/" element={<Landing />} />
-      <Route path="/onboarding" element={<Onboarding />} />
+      <Route path="/onboarding" element={<Onboarding user={user} />} />
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/auth/callback" element={<AuthCallback />} />
     </Routes>
@@ -27,9 +27,31 @@ function App() {
   const [current, setCurrent] = useState(location)
   const [previous, setPrevious] = useState(null)
   const [direction, setDirection] = useState('forward')
+  const [user, setUser] = useState(null)
+  const [ready, setReady] = useState(false)
+  const [error, setError] = useState('')
   const timer = useRef(null)
   const navigate = useNavigate()
   const session = useSession()
+
+  useEffect(() => {
+    let active = true
+    api('accounts/session/')
+      .then(data => {
+        if (active) setUser(data.user)
+      })
+      .catch(() => {
+        if (active) {
+          setError('Could not connect to your grocery account. Please try again later.')
+        }
+      })
+      .finally(() => {
+        if (active) setReady(true)
+      })
+    return () => {
+      active = false
+    }
+  }, [])
 
   useEffect(() => {
     if (session && location.pathname === '/') navigate('/dashboard', { replace: true })
@@ -57,17 +79,24 @@ function App() {
 
   useEffect(() => () => clearTimeout(timer.current), [])
 
-  if (!previous) return <PageRoutes location={current} />
+  if (!ready) return <p role="status">Loading GroceryBuddy…</p>
 
   return (
-    <div className="slide-stage" style={{ '--slide-ms': `${SLIDE_MS}ms` }}>
-      <div className={`slide-panel slide-out-${direction}`}>
-        <PageRoutes location={previous} />
-      </div>
-      <div className={`slide-panel slide-in-${direction}`}>
-        <PageRoutes location={current} />
-      </div>
-    </div>
+    <>
+      {error && <p role="alert">{error}</p>}
+      {!previous ? (
+        <PageRoutes location={current} user={user} />
+      ) : (
+        <div className="slide-stage" style={{ '--slide-ms': `${SLIDE_MS}ms` }}>
+          <div className={`slide-panel slide-out-${direction}`}>
+            <PageRoutes location={previous} user={user} />
+          </div>
+          <div className={`slide-panel slide-in-${direction}`}>
+            <PageRoutes location={current} user={user} />
+          </div>
+        </div>
+      )}
+    </>
   )
 }
 
@@ -655,24 +684,6 @@ function RecipesPage({items, onBackToDashboard, answers}){
       )}
     </div>
   );
-}
-
-function App() {
-  const [user, setUser] = useState(null)
-  const [ready, setReady] = useState(false)
-  const [error, setError] = useState('')
-  useEffect(() => {
-    let active = true
-    api('accounts/session/').then(data => { if (active) setUser(data.user) })
-      .catch(() => { if (active) setError('Could not connect to your grocery account. Please try again later.') })
-      .finally(() => { if (active) setReady(true) })
-    return () => { active = false }
-  }, [])
-  if (!ready) return <p role="status">Loading GroceryBuddy…</p>
-  return <>
-    {error && <p role="alert">{error}</p>}
-    <Onboarding user={user} />
-  </>
 }
 
 export default App
