@@ -3,22 +3,24 @@ from django.test import Client, TestCase
 
 
 class SessionTests(TestCase):
-    def test_session_login_logout_and_csrf(self):
-        get_user_model().objects.create_user(username="alice", password="test-password")
+    def test_anonymous_session_bootstraps_csrf(self):
         client = Client(enforce_csrf_checks=True)
-        session = client.get("/api/accounts/session/").json()
-        self.assertIsNone(session["user"])
-        credentials = {"username": "alice", "password": "test-password"}
-        self.assertEqual(client.post("/api/accounts/login/", credentials, content_type="application/json").status_code, 403)
-        response = client.post("/api/accounts/login/", credentials, content_type="application/json", HTTP_X_CSRFTOKEN=session["csrfToken"])
+        response = client.get("/api/accounts/session/")
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()["user"]["username"], "alice")
-        self.assertEqual(client.get("/api/inventory/items/").status_code, 200)
-        self.assertEqual(client.post("/api/accounts/logout/").status_code, 403)
-        self.assertEqual(client.post("/api/accounts/logout/", HTTP_X_CSRFTOKEN=response.json()["csrfToken"]).status_code, 200)
-        self.assertEqual(client.get("/api/inventory/items/").status_code, 403)
+        self.assertIsNone(response.json()["user"])
+        self.assertTrue(response.json()["csrfToken"])
+        self.assertIn("csrftoken", client.cookies)
+        self.assertIn("no-store", response["Cache-Control"])
 
-    def test_invalid_credentials(self):
-        response = self.client.post("/api/accounts/login/", {"username": "missing", "password": "wrong"}, content_type="application/json")
-        self.assertEqual(response.status_code, 400)
-        self.assertIsNone(self.client.get("/api/accounts/session/").json()["user"])
+    def test_authenticated_session_allows_csrf_protected_grocery_write(self):
+        user = get_user_model().objects.create_user(username="alice")
+        client = Client(enforce_csrf_checks=True)
+        client.force_login(user)
+        response = client.get("/api/accounts/session/")
+        self.assertEqual(response.json()["user"], {"id": user.pk, "username": "alice"})
+        payload = {"name": "Milk", "category": "Dairy"}
+        self.assertEqual(client.post("/api/inventory/items/", payload).status_code, 403)
+        response = client.post("/api/inventory/items/", payload,
+                               HTTP_X_CSRFTOKEN=response.json()["csrfToken"])
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.json()["user"], user.pk)

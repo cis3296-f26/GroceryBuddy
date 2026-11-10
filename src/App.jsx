@@ -505,16 +505,18 @@ function Dashboard ({answers, user}){
   const [items, setItems] = useState([])
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
-  const firstLetter = user.username.charAt(0).toUpperCase()
+  const displayName = user?.username || user?.first_name || answers.name || 'Friend'
+  const firstLetter = displayName.charAt(0).toUpperCase()
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isShoppingModalOpen, setIsShoppingModalOpen] = useState(false)
   useEffect(() => {
     let active = true
+    if (!user) return () => { active = false }
     api('inventory/items/').then(data => { if (active) setItems(data) })
       .catch(error => { if (active) setError(error.message) })
       .finally(() => { if (active) setLoading(false) })
     return () => { active = false }
-  }, [])
+  }, [user])
   async function handleSaveItem(item) {
     const saved = await api('inventory/items/', { method: 'POST', body: item })
     setItems(previous => [...previous, saved])
@@ -534,7 +536,7 @@ function Dashboard ({answers, user}){
        
         <button className="profile-button">
           <span className="profile-initial">{firstLetter}.</span>
-          <span className="profile-fullname">{user.username}</span>
+          <span className="profile-fullname">{displayName}</span>
         </button>
         <div className="dropdown-menu">
           <a href="#profile" className="dropdown-item">Your Profile</a>
@@ -550,9 +552,10 @@ function Dashboard ({answers, user}){
       <div className="dashboard-layout">
           <div className="fridge-card">
             <h2 className="fridge-title">My Fridge</h2>
-            {loading && <p role="status">Loading groceries…</p>}
+            {!user && <p role="status">Sign-in is required to load and save groceries. The login screen is coming soon.</p>}
+            {user && loading && <p role="status">Loading groceries…</p>}
             {error && <p role="alert">{error}</p>}
-            {items.length === 0 ? (
+            {user && !loading && !error && items.length === 0 ? (
               <p className="empty-text">Your Fridge is Empty</p>
             ) : (
               <ul>
@@ -568,6 +571,7 @@ function Dashboard ({answers, user}){
             <button
             type="button"
             className="add-button"
+            disabled={!user}
             onClick={(e) => {
               e.stopPropagation();
               setIsModalOpen(true)}}
@@ -1221,63 +1225,18 @@ function App() {
   const [user, setUser] = useState(null)
   const [ready, setReady] = useState(false)
   const [error, setError] = useState('')
-  const [busy, setBusy] = useState(false)
-  const [showLogin, setShowLogin] = useState(true)
   useEffect(() => {
-    api('accounts/session/').then(data => setUser(data.user))
-      .catch(() => setError('Cannot reach the backend. Start Django and try again.'))
-      .finally(() => setReady(true))
+    let active = true
+    api('accounts/session/').then(data => { if (active) setUser(data.user) })
+      .catch(() => { if (active) setError('Could not connect to your grocery account. Please try again later.') })
+      .finally(() => { if (active) setReady(true) })
+    return () => { active = false }
   }, [])
-  async function signIn(event) {
-    event.preventDefault()
-    const form = new FormData(event.currentTarget)
-    setBusy(true)
-    setError('')
-    try {
-      await api('accounts/session/')
-      const data = await api('accounts/login/', { method: 'POST', body: {
-        username: form.get('username'), password: form.get('password'),
-      } })
-      setUser(data.user)
-      setShowLogin(false)
-      window.history.replaceState(null, '', '/dashboard')
-    } catch (error) { setError(error.message) }
-    finally { setBusy(false) }
-  }
-  if (!showLogin && user) return <Dashboard key={user.id} answers={{ name: user.username }} user={user} />
-  return <div className="app-shell login-preview">
-    <header><a className="brand" href="/" aria-label="GroceryBuddy home">
-      <span className="brand-mark">g<span>✳</span></span>grocerybuddy<span className="brand-dot">.</span>
-    </a><span className="login-note">A little less on your plate.</span></header>
-    <main className="login-layout">
-      <aside className="login-story">
-        <span className="login-kicker">YOUR EVERYDAY GROCERY COMPANION</span>
-        <h1>A full cart.<br />A little less<br /><em>on your plate.</em></h1>
-        <p>Keep track of what’s fresh, make room for good meals, and waste a little less.</p>
-        <div className="login-illustration" aria-hidden="true">🥕 🛍️ 🍅</div>
-      </aside>
-      <section className="login-panel" aria-labelledby="login-title">
-        <div className="login-card">
-          <span className="login-kicker">GOOD TO HAVE YOU BACK</span>
-          <h2 id="login-title">Welcome back.</h2>
-          <p>Your groceries, all in one place. Sign in to get started.</p>
-          <form onSubmit={signIn}>
-            <label htmlFor="login-username">Username</label>
-            <input id="login-username" name="username" autoComplete="username" placeholder="Your username" required disabled={busy} />
-            <label htmlFor="login-password">Password</label>
-            <input id="login-password" name="password" type="password" autoComplete="current-password" placeholder="Your password" required disabled={busy} />
-            {error && <p className="login-error" role="alert">{error}</p>}
-            <button className="primary login-submit" type="submit" disabled={busy || !ready}>{busy ? 'Signing in…' : !ready ? 'Checking connection…' : 'Sign in →'}</button>
-          </form>
-          {user && <button className="login-continue" type="button" onClick={() => {
-            setShowLogin(false)
-            window.history.replaceState(null, '', '/dashboard')
-          }}>Continue as {user.username} →</button>}
-          <p className="login-help">Use your existing GroceryBuddy Django account.</p>
-        </div>
-      </section>
-    </main>
-  </div>
+  if (!ready) return <p role="status">Loading GroceryBuddy…</p>
+  return <>
+    {error && <p role="alert">{error}</p>}
+    <Onboarding user={user} />
+  </>
 }
 
 export default App
