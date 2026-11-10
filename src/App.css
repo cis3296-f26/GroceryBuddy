@@ -24,23 +24,7 @@ header {
 .brand-mark {
   width: 33px;
   height: 35px;
-  background: #2e4b36;
-  border-radius: 11px 11px 13px 13px;
-  color: #fff;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 28px;
   margin-right: 10px;
-  position: relative;
-}
-
-.brand-mark span {
-  position: absolute;
-  right: -5px;
-  top: -10px;
-  color: #7d9955;
-  font-size: 24px;
 }
 
 .header-note {
@@ -1384,3 +1368,29 @@ fieldset {
 
 
 
+
+.slide-stage {
+  position: relative;
+  height: 100svh;
+  overflow: hidden;
+}
+
+.slide-panel {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  background: #fafbf7;
+  animation-duration: var(--slide-ms, 500ms);
+  animation-timing-function: ease-in-out;
+  animation-fill-mode: forwards;
+}
+
+.slide-out-forward { animation-name: slide-out-left; }
+.slide-in-forward { animation-name: slide-in-right; }
+.slide-out-back { animation-name: slide-out-right; }
+.slide-in-back { animation-name: slide-in-left; }
+
+@keyframes slide-out-left { from { transform: translateX(0); } to { transform: translateX(-100%); } }
+@keyframes slide-in-right { from { transform: translateX(100%); } to { transform: translateX(0); } }
+@keyframes slide-out-right { from { transform: translateX(0); } to { transform: translateX(100%); } }
+@keyframes slide-in-left { from { transform: translateX(-100%); } to { transform: translateX(0); } }

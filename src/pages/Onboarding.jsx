@@ -1,0 +1,508 @@
+import { useRef, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { supabase } from '../supabase'
+import '../App.css'
+
+const questions = [
+  {
+    id: 'name',
+    section: 'A little about you',
+    title: 'First things first. What’s your name?',
+    description: 'Let’s make your grocery routine feel a little more you.',
+    placeholder: 'Your first name',
+  },
+  {
+    id: 'goal',
+    section: 'Your everyday goals',
+    title: 'What brings you to GroceryBuddy?',
+    description: 'Pick everything you’d like a hand with.',
+    multi: true,
+    options: [
+      'Eat more balanced meals',
+      'Spend less on groceries',
+      'Save time planning',
+      'Waste less food',
+      'Get inspired in the kitchen',
+    ],
+  },
+  {
+    id: 'household',
+    section: 'Your table',
+    title: 'How many people are you shopping for?',
+    description: 'This helps us understand the size of your grocery list.',
+    options: ['Just me', '2 people', '3–4 people', '5 or more people'],
+  },
+  {
+    id: 'diet',
+    section: 'Your food preferences',
+    title: 'How do you like to eat?',
+    description: 'Choose the closest fit. There’s no right answer.',
+    options: [
+      'A bit of everything',
+      'Vegetarian',
+      'Vegan',
+      'Pescatarian',
+      'Flexitarian',
+      'Something else',
+    ],
+    extra: true,
+  },
+  {
+    id: 'allergies',
+    section: 'Your food preferences',
+    title: 'Any food allergies or intolerances?',
+    description: 'Select all that apply. You can add anything we missed.',
+    options: [
+      'None',
+      'Peanuts',
+      'Tree nuts',
+      'Dairy',
+      'Eggs',
+      'Wheat / gluten',
+      'Soy',
+      'Fish / shellfish',
+      'Other',
+    ],
+    multi: true,
+    extra: true,
+  },
+  {
+    id: 'dislikes',
+    section: 'Your food preferences',
+    title: 'Anything you’d rather leave off the list?',
+    description:
+      'Foods you dislike, ingredients you avoid, or any other preferences.',
+    placeholder: 'e.g. mushrooms, cilantro, pork…',
+    optional: true,
+  },
+  {
+    id: 'budget',
+    section: 'Your grocery routine',
+    title: 'What’s your weekly grocery budget?',
+    description: 'A rough estimate for your whole household is perfect.',
+    options: [
+      'Under $50',
+      '$50–$100',
+      '$100–$150',
+      '$150–$200',
+      '$200+',
+      'I’m figuring that out',
+    ],
+  },
+  {
+    id: 'cooking',
+    section: 'Your grocery routine',
+    title: 'How much time do you like to spend cooking?',
+    description: 'Think of a typical weeknight dinner.',
+    options: [
+      'Under 15 minutes',
+      '15–30 minutes',
+      '30–45 minutes',
+      'I enjoy taking my time',
+    ],
+  },
+  {
+    id: 'age',
+    section: 'A little more about you',
+    title: 'How old are you?',
+    description: 'Skip anything you’d prefer not to share.',
+    type: 'number',
+    min: 1,
+    max: 120,
+    placeholder: 'Your age',
+    unit: 'years',
+    optional: true,
+  },
+  {
+    id: 'sex',
+    section: 'A little more about you',
+    title: 'What is your sex?',
+    description: 'Skip anything you prefer not to share.',
+    options: ['Female', 'Male', 'Intersex', 'Prefer not to say'],
+    optional: true,
+  },
+  {
+    id: 'height',
+    section: 'A little more about you',
+    title: 'How tall are you?',
+    description:
+      'Only share this if you’re comfortable. You can choose your units.',
+    type: 'number',
+    ranges: { in: [36, 96], cm: [90, 245] },
+    placeholder: 'Your height',
+    units: ['in', 'cm'],
+    optional: true,
+  },
+  {
+    id: 'weight',
+    section: 'A little more about you',
+    title: 'What’s your current weight?',
+    description: 'One last optional detail for your profile.',
+    type: 'number',
+    ranges: { lb: [60, 700], kg: [27, 320] },
+    placeholder: 'Your weight',
+    units: ['lb', 'kg'],
+    optional: true,
+  },
+]
+
+function Onboarding() {
+  const navigate = useNavigate()
+  const googleName = useLocation().state?.googleName
+  const fromGoogle = googleName !== undefined
+  const [step, setStep] = useState(fromGoogle ? 1 : 0)
+  const [answers, setAnswers] = useState(
+    fromGoogle ? { name: googleName } : {},
+  )
+  const [units, setUnits] = useState({ height: 'cm', weight: 'lb' })
+  const [details, setDetails] = useState({})
+  const [error, setError] = useState('')
+  const [finished, setFinished] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const [warned, setWarned] = useState('')
+  const heading = useRef(null)
+  const q = questions[step]
+  const value = answers[q.id] ?? (q.multi ? [] : '')
+  const progress = finished ? 100 : Math.round((step / questions.length) * 100)
+  const needsDetail =
+    q.extra &&
+    (Array.isArray(value)
+      ? value.includes('Other')
+      : value === 'Something else')
+
+  function move(next) {
+    setError('')
+    setStep(next)
+    requestAnimationFrame(() => heading.current?.focus())
+  }
+
+  function submit(event) {
+    event.preventDefault()
+    const [min, max] = q.ranges ? q.ranges[units[q.id]] : [q.min, q.max]
+    const unit = q.ranges ? ` ${units[q.id]}` : ''
+    if (
+      (!q.optional &&
+        !(Array.isArray(value) ? value.length : value.trim().length)) ||
+      (q.type === 'number' &&
+        value !== '' &&
+        (!Number.isFinite(Number(value)) ||
+          Number(value) < min ||
+          Number(value) > max))
+    ) {
+      setError(
+        q.type === 'number'
+          ? `Enter a number between ${min} and ${max}${unit}, or skip this question.`
+          : 'Please add an answer to keep going.',
+      )
+      return
+    }
+    if (q.id === 'weight' && value !== '' && answers.height) {
+      const kg = units.weight === 'lb' ? Number(value) * 0.4536 : Number(value)
+      const m =
+        units.height === 'in'
+          ? Number(answers.height) * 0.0254
+          : Number(answers.height) / 100
+      const bmi = kg / (m * m)
+      if ((bmi < 12 || bmi > 90) && warned !== value + units.weight) {
+        setError('Confirm your weight')
+        setWarned(value + units.weight)
+        return
+      }
+    }
+    if (needsDetail && !details[q.id]?.trim()) {
+      setError('Tell us a little more in the field below.')
+      return
+    }
+    if (editing || step === questions.length - 1) {
+      setFinished(true)
+      setEditing(false)
+    } else move(step + 1)
+  }
+
+  function select(option) {
+    setError('')
+    if (!q.multi) setAnswers({ ...answers, [q.id]: option })
+    else
+      setAnswers({
+        ...answers,
+        [q.id]:
+          option === 'None'
+            ? value.includes('None')
+              ? []
+              : ['None']
+            : value.includes(option)
+              ? value.filter((item) => item !== option)
+              : [...value.filter((item) => item !== 'None'), option],
+      })
+  }
+
+  return (
+    <div className="app-shell">
+      <header>
+        <a className="brand" href="/" aria-label="GroceryBuddy home">
+          <img className="brand-mark" src="/logo.svg" alt="" />
+          grocerybuddy<span className="brand-dot">.</span>
+        </a>
+      </header>
+      <main>
+        <aside className="story-panel">
+          <h1>
+            A full cart.
+            <br />A little less
+            <br />
+            <em>on your plate.</em>
+          </h1>
+          <div className="grocery-art" aria-hidden="true">
+            <span className="art-orbit" />
+            <span className="leaf leaf-one" />
+            <span className="leaf leaf-two" />
+            <span className="carrot">🥕</span>
+            <span className="bag">
+              <span className="bag-handle" />
+              <span className="bag-word">
+                the good
+                <br />
+                stuff.
+              </span>
+              <span className="bag-star">✳</span>
+            </span>
+            <span className="tomato">🍅</span>
+          </div>
+        </aside>
+        <section className="quiz-panel" aria-label="GroceryBuddy onboarding">
+          <nav className="step-nav" aria-label="Question navigation">
+            <button
+              type="button"
+              aria-label="Previous question"
+              onClick={() => {
+                if (finished) {
+                  setFinished(false)
+                  move(questions.length - 1)
+                } else if (step === 0 || (fromGoogle && step === 1)) {
+                  navigate(-1)
+                } else move(step - 1)
+              }}
+            >
+              ←
+            </button>
+            <button
+              type="button"
+              disabled={finished}
+              aria-label="Next question"
+              onClick={submit}
+            >
+              →
+            </button>
+          </nav>
+          <div className="progress-meta">
+            <span>
+              {finished
+                ? 'All done!'
+                : step === 0
+                  ? 'Let’s get started'
+                  : `Nice! ${step} of ${questions.length} answered`}
+            </span>
+            <span>{progress}%</span>
+          </div>
+          <div
+            className="progress-track"
+            role="progressbar"
+            aria-label="Quiz progress"
+            aria-valuenow={progress}
+            aria-valuemin={0}
+            aria-valuemax={100}
+          >
+            <div style={{ width: `${progress}%` }} />
+          </div>
+          {finished ? (
+            <div className="completion">
+              <div className="eyebrow">
+                NICE TO MEET YOU,{' '}
+                {String(answers.name || 'FRIEND').toUpperCase()}
+              </div>
+              <h2>
+                Your next grocery run
+                <br />
+                starts with you.
+              </h2>
+              <p>
+                Here’s your profile. You can always adjust any answer in the
+                dashboard.
+              </p>
+              <dl>
+                {questions.map((item, index) => (
+                  <div key={item.id}>
+                    <dt>
+                      {item.id.charAt(0).toUpperCase() + item.id.slice(1)}
+                    </dt>
+                    <dd>
+                      <button
+                        className="review-answer"
+                        aria-label={`Edit ${item.id}`}
+                        onClick={() => {
+                          setFinished(false)
+                          setEditing(true)
+                          move(index)
+                        }}
+                      >
+                        {answers[item.id]?.length ? (
+                          <>
+                            {Array.isArray(answers[item.id])
+                              ? answers[item.id].join(', ')
+                              : answers[item.id]}
+                            {units[item.id] ? ` ${units[item.id]}` : ''}
+                            {details[item.id] &&
+                            (answers[item.id] === 'Something else' ||
+                              (Array.isArray(answers[item.id]) &&
+                                answers[item.id].includes('Other')))
+                              ? ` — ${details[item.id]}`
+                              : ''}
+                          </>
+                        ) : (
+                          'Not provided'
+                        )}
+                      </button>
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+              <button
+                className="primary"
+                onClick={async () => {
+                  if (fromGoogle) {
+                    await supabase.auth.updateUser({ data: { onboarded: true } })
+                  }
+                  navigate('/dashboard', { state: { answers } })
+                }}
+              >
+                Confirm my answers
+              </button>
+            </div>
+          ) : (
+            <form onSubmit={submit} className="question" key={q.id} noValidate>
+              <div className="question-kicker">
+                <span>{String(step + 1).padStart(2, '0')}</span>
+                {q.section}
+                <span className="optional">{q.optional ? 'Optional' : ''}</span>
+              </div>
+              <h2 ref={heading} tabIndex={-1}>
+                {q.title}
+              </h2>
+              <p className="description">{q.description}</p>
+              {q.options ? (
+                <fieldset>
+                  <legend className="sr-only">{q.title}</legend>
+                  {q.options.map((option, index) => (
+                    <label
+                      key={option}
+                      className={`choice ${value.includes(option) ? 'selected' : ''}`}
+                    >
+                      <input
+                        type={q.multi ? 'checkbox' : 'radio'}
+                        name={q.id}
+                        checked={
+                          q.multi ? value.includes(option) : value === option
+                        }
+                        onChange={() => select(option)}
+                      />
+                      <span className="choice-letter">
+                        {String.fromCharCode(65 + index)}
+                      </span>
+                      <span>{option}</span>
+                      <span className="choice-check">
+                        {(q.multi ? value.includes(option) : value === option)
+                          ? '✓'
+                          : ''}
+                      </span>
+                    </label>
+                  ))}
+                </fieldset>
+              ) : (
+                <div className="input-row">
+                  <input
+                    aria-label={q.title}
+                    type={q.type || 'text'}
+                    min={q.min}
+                    max={q.max}
+                    step="any"
+                    autoComplete={q.id === 'name' ? 'given-name' : 'off'}
+                    placeholder={q.placeholder}
+                    value={value}
+                    onChange={(event) => {
+                      setAnswers({ ...answers, [q.id]: event.target.value })
+                      setError('')
+                    }}
+                  />
+                  {q.units ? (
+                    <div
+                      className="unit-toggle"
+                      role="group"
+                      aria-label={`${q.id} units`}
+                    >
+                      {q.units.map((unit) => (
+                        <button
+                          key={unit}
+                          type="button"
+                          className={units[q.id] === unit ? 'active' : ''}
+                          aria-pressed={units[q.id] === unit}
+                          onClick={() => setUnits({ ...units, [q.id]: unit })}
+                        >
+                          {unit}
+                        </button>
+                      ))}
+                    </div>
+                  ) : q.unit ? (
+                    <span>{q.unit}</span>
+                  ) : null}
+                </div>
+              )}
+              {needsDetail && (
+                <input
+                  className="detail-input"
+                  aria-label="Additional dietary details"
+                  placeholder="Tell us more…"
+                  value={details[q.id] || ''}
+                  onChange={(event) =>
+                    setDetails({ ...details, [q.id]: event.target.value })
+                  }
+                />
+              )}
+              <div className="error" role="alert">
+                {error}
+              </div>
+              <div className="actions">
+                <button className="primary" type="submit">
+                  {editing
+                    ? 'Save answer'
+                    : step === questions.length - 1
+                      ? 'Finish'
+                      : 'Continue'}{' '}
+                </button>
+                <span className="enter-hint">
+                  or press <strong>Enter ↵</strong>
+                </span>
+                {q.optional && (
+                  <button
+                    className="skip"
+                    type="button"
+                    onClick={() => {
+                      setAnswers({ ...answers, [q.id]: '' })
+                      if (editing || step === questions.length - 1) {
+                        setFinished(true)
+                        setEditing(false)
+                      } else move(step + 1)
+                    }}
+                  >
+                    Skip
+                  </button>
+                )}
+              </div>
+            </form>
+          )}
+        </section>
+      </main>
+    </div>
+  )
+}
+
+export default Onboarding
