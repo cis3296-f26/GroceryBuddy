@@ -43,3 +43,17 @@ class GroceryItem(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.quantity})"  # how it shows in the admin
+
+
+class FoodType(models.Model):
+    name = models.CharField(max_length=100, unique=True)  # food name, like "Eggs"
+    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES)  # food group
+    fridge_days = models.PositiveIntegerField(null=True, blank=True)  # days it lasts in the fridge
+    freezer_days = models.PositiveIntegerField(null=True, blank=True)  # days it lasts in the freezer
+    pantry_days = models.PositiveIntegerField(null=True, blank=True)  # days it lasts in the pantry
+
+    class Meta:
+        ordering = ["name"]  # sort foods A to Z
+
+    def __str__(self):
+        return self.name  # how it shows in the admin
