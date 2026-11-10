@@ -141,6 +141,27 @@ Open the address shown in the terminal, usually http://localhost:5173. Vite forw
 
 Press `Ctrl+C` in each terminal to stop its server. React updates as frontend files change; Django reloads when backend Python files change.
 
+## Backend Deployment
+
+The backend is hosted on Render Free at https://grocerybuddy-q2vi.onrender.com. Deploy from `main` with root directory `backend`:
+
+- **Build:** `pip install -r requirements.txt`
+- **Start:** `python manage.py migrate --noinput && gunicorn grocery_buddy.wsgi:application --bind 0.0.0.0:$PORT`
+- **Health check:** `/api/health/` (returns `{"status": "ok"}`; does not test database connectivity).
+
+Set these environment variables in Render:
+
+| Variable | Value |
+| --- | --- |
+| `DATABASE_URL` | Supabase PostgreSQL session-pooler connection string |
+| `SECRET_KEY` | Generated secret; keep private |
+| `DEBUG` | `False` |
+| `ALLOWED_HOSTS` | `grocerybuddy-q2vi.onrender.com` |
+| `GOOGLE_CLIENT_ID` | Google OAuth web client ID |
+| `CSRF_TRUSTED_ORIGINS` | `https://grocerypal-three.vercel.app,https://grocerybuddy-q2vi.onrender.com` |
+
+UptimeRobot checks the health endpoint every 5 minutes to help prevent idle sleep. Free services can still restart. Keep credentials out of this README and Git.
+
 ## API Routing
 
 | Path | Status |
