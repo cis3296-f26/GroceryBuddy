@@ -24,23 +24,7 @@ header {
 .brand-mark {
   width: 33px;
   height: 35px;
-  background: #2e4b36;
-  border-radius: 11px 11px 13px 13px;
-  color: #fff;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 28px;
   margin-right: 10px;
-  position: relative;
-}
-
-.brand-mark span {
-  position: absolute;
-  right: -5px;
-  top: -10px;
-  color: #7d9955;
-  font-size: 24px;
 }
 
 .header-note {
@@ -2242,10 +2226,29 @@ transform: translateX(4px);
   100%{opacity: 0.6;}
 }
 
-.grocery-details { display: grid; gap: 6px; }
-.grocery-details span { font-size: 13px; }
-.grocery-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-.grocery-editor { margin: 18px 0; }
-.grocery-editor fieldset { display: grid; gap: 12px; border: 1px solid #71864e; border-radius: 10px; padding: 16px; }
-.grocery-editor label { display: grid; gap: 5px; }
-.grocery-editor input, .grocery-editor select { width: 100%; box-sizing: border-box; padding: 8px; font: inherit; }
+
+.slide-stage {
+  position: relative;
+  height: 100svh;
+  overflow: hidden;
+}
+
+.slide-panel {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  background: #fafbf7;
+  animation-duration: var(--slide-ms, 500ms);
+  animation-timing-function: ease-in-out;
+  animation-fill-mode: forwards;
+}
+
+.slide-out-forward { animation-name: slide-out-left; }
+.slide-in-forward { animation-name: slide-in-right; }
+.slide-out-back { animation-name: slide-out-right; }
+.slide-in-back { animation-name: slide-in-left; }
+
+@keyframes slide-out-left { from { transform: translateX(0); } to { transform: translateX(-100%); } }
+@keyframes slide-in-right { from { transform: translateX(100%); } to { transform: translateX(0); } }
+@keyframes slide-out-right { from { transform: translateX(0); } to { transform: translateX(100%); } }
+@keyframes slide-in-left { from { transform: translateX(-100%); } to { transform: translateX(0); } }
