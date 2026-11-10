@@ -1,5 +1,6 @@
 import { useRef, useState, useEffect } from 'react'
 import './App.css'
+import { api } from './api'
 
 
 const questions = [
@@ -145,7 +146,7 @@ const questions = [
   },
 ]
 
-function App() {
+export function Onboarding({ user }) {
   const [step, setStep] = useState(0)
   const [answers, setAnswers] = useState({})
   const [units, setUnits] = useState({ height: 'cm', weight: 'lb' })
@@ -232,7 +233,7 @@ function App() {
   }
 
   if(confirmed){
-    return <Dashboard answers={answers}/>;
+    return <Dashboard answers={answers} user={user}/>;
   }
 
   return (
@@ -500,37 +501,46 @@ function App() {
   )
 }
 
-function Dashboard ({answers}){
-
-  const [fridgeItems, setFridgeItems] = useState([]);
-  const firstLetter = answers?.name ? answers.name.charAt(0).toUpperCase() : '';
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isShoppingModalOpen, setIsShoppingModalOpen] = useState(false);
-  const [pantryItems, setPantryItems] = useState([]);
-  const[currentView, setCurrentView] = useState('Dashboard')
-  
- 
-  if(currentView === 'Recipes'){
-    return(
-      <RecipesPage
-      fridgeItems={fridgeItems}
-      onBackToDashboard={() => setCurrentView('Dashboard')}
-      answers={answers}
-      />
-    );
+function Dashboard ({answers, user}){
+  const [items, setItems] = useState([])
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [editingItem, setEditingItem] = useState(null)
+  const [deletingId, setDeletingId] = useState(null)
+  const displayName = user?.username || user?.first_name || answers.name || 'Friend'
+  const firstLetter = displayName.charAt(0).toUpperCase()
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isShoppingModalOpen, setIsShoppingModalOpen] = useState(false)
+  useEffect(() => {
+    let active = true
+    if (!user) return () => { active = false }
+    api('inventory/items/').then(data => { if (active) setItems(data) })
+      .catch(error => { if (active) setError(error.message) })
+      .finally(() => { if (active) setLoading(false) })
+    return () => { active = false }
+  }, [user])
+  async function handleSaveItem(item) {
+    const saved = await api('inventory/items/', { method: 'POST', body: item })
+    setItems(previous => [...previous, saved])
   }
-
-  const handleAdditions = () => {
-    const newItem = prompt("Enter Your Fridge Items Here!");
-    if(newItem && newItem.trim() !== ""){
-      setFridgeItems([...fridgeItems,newItem]);
-    }
-  };
-
-  const handleSaveItem = (newItem) => {
-    setPantryItems((prev) => [...prev, newItem]);
-  };
-  
+  async function handleUpdateItem(item) {
+    const saved = await api(`inventory/items/${item.id}/`, { method: 'PATCH', body: item })
+    setItems(previous => previous.map(existing => existing.id === saved.id ? saved : existing))
+    setEditingItem(null)
+  }
+  async function handleDeleteItem(item) {
+    if (!window.confirm(`Delete ${item.name}?`)) return
+    setDeletingId(item.id)
+    setError('')
+    try {
+      await api(`inventory/items/${item.id}/`, { method: 'DELETE' })
+      setItems(previous => previous.filter(existing => existing.id !== item.id))
+      if (editingItem?.id === item.id) setEditingItem(null)
+    } catch (error) { setError(error.message) }
+    finally { setDeletingId(null) }
+  }
+  const [currentView, setCurrentView] = useState('Dashboard')
+  if (currentView === 'Recipes') return <RecipesPage items={items} onBackToDashboard={() => setCurrentView('Dashboard')} answers={answers} />
   return (
     <div className="app-shell">
       <header>
@@ -544,7 +554,7 @@ function Dashboard ({answers}){
        
         <button className="profile-button">
           <span className="profile-initial">{firstLetter}.</span>
-          <span className="profile-fullname">{answers.name}</span>
+          <span className="profile-fullname">{displayName}</span>
         </button>
         <div className="dropdown-menu">
           <a href="#profile" className="dropdown-item">Your Profile</a>
@@ -563,70 +573,47 @@ function Dashboard ({answers}){
           Let's keep track of your kitchen.
         </p>
       </div>
-      <div classname="dashboard-layout">
+      <div className="dashboard-layout">
           <div className="fridge-card">
             <div className="fridge-header">
-              <div>
-                <h2 className="fridge-title">❄️ My Fridge</h2>
-              </div>
-
-              <div className="fridge-temperature">
-                🧊 35° F
-              </div>
+              <h2 className="fridge-title">❄️ My Fridge</h2>
+              <div className="fridge-temperature">🧊 35° F</div>
             </div>
-
-            <div className="fridge-summary">
-            <strong>
-              {fridgeItems.length === 0
-              ? "Your fridge is empty! "
-              : "Keep Adding Items! "
-              }
-            </strong>
-
-            <p>
-              You have {fridgeItems.length}{" "}
-              {fridgeItems.length === 1 ? "food" : "foods"} stored inside.
-            </p>
-            </div>
-
-            
-
-            
+            {user && !loading && !error && <div className="fridge-summary">
+              <strong>{items.length === 0 ? 'Your fridge is empty!' : 'Keep Adding Items!'}</strong>
+              <p>You have {items.length} {items.length === 1 ? 'food' : 'foods'} stored inside.</p>
+            </div>}
+            {!user && <p role="status">Sign-in is required to load and save groceries. The login screen is coming soon.</p>}
+            {user && loading && <p role="status">Loading groceries…</p>}
+            {error && <p role="alert">{error}</p>}
+            {user && !loading && !error && items.length === 0 ? (
+              <p className="empty-text">Your Fridge is Empty</p>
+            ) : (
               <ul>
-                {fridgeItems.map((item) => {
-                  const foodStatus = getFoodStatus(item.date);
-
-                  return (
-                    <li key={item.id} className="fridge-item">
-                     
-                      <span className="fridge-item-name">
-                        {item.name}
-                        <span className="fridge-category-emoji">
-                          {item.category?.split(' ').pop()}
-                        </span>
-                      </span>
-                       
-
-                       <div className="fridge-item-bottom">
-                      <span className="fridge-quantity">
-                        x {item.quantity}
-                      </span>
-                    
-                     <span className={`food-status-tag ${foodStatus.status}`}>
-                      {foodStatus.statusLabel}
-                     </span>
-                     </div>
-                    </li>
-                  );
-                })}
+                {items.map((item) => (
+                  <li key={item.id} className="fridge-item">
+                    <div className="grocery-details">
+                      <strong className="fridge-item-name">{item.name}</strong>
+                      <span className={`food-status-tag ${getFoodStatus(item.expiration_date).status}`}>{getFoodStatus(item.expiration_date).statusLabel}</span>
+                      <span>Quantity: {item.quantity} · {item.category} · {item.storage_location}</span>
+                      <span>Purchased: {item.purchase_date} · Expires: {item.expiration_date || 'Not set'}</span>
+                    </div>
+                    <div className="grocery-actions">
+                      <button type="button" disabled={deletingId === item.id} onClick={() => setEditingItem(item)}>Edit {item.name}</button>
+                      <button type="button" disabled={deletingId !== null} onClick={() => handleDeleteItem(item)}>{deletingId === item.id ? 'Deleting…' : `Delete ${item.name}`}</button>
+                    </div>
+                  </li>
+                ))}
               </ul>
-            
-            
+            )}
 
+            {editingItem && <GroceryEditor key={editingItem.id} item={editingItem} onSave={handleUpdateItem} onCancel={() => setEditingItem(null)} />}
             <button
             type="button"
             className="add-button"
-            onClick={() => {
+            disabled={!user}
+            onClick={(e) => {
+              e.stopPropagation();
               setIsModalOpen(true)}}
             >
               <span className="plus-icon">+</span>
@@ -636,9 +623,7 @@ function Dashboard ({answers}){
               <AddFoodModal 
               isOpen={isModalOpen}
               onClose={() => setIsModalOpen(false)}
-              onSaveItem={(newItem) => {
-                setFridgeItems((prevItems) => [...prevItems,newItem]);
-              }}
+              onSaveItem={handleSaveItem}
               />
             )}
             
@@ -678,7 +663,7 @@ function Dashboard ({answers}){
             <ShoppingListModal
             isOpen={isShoppingModalOpen}
             onClose={() => setIsShoppingModalOpen(false)}
-            onGenerateList={(config) => {
+            onGenerateList={() => {
 
             }}
             />
@@ -698,6 +683,45 @@ function Dashboard ({answers}){
       </div>
     </div>
     )}
+
+const GROCERY_CATEGORIES = ['Fruit', 'Vegetable', 'Grain', 'Protein', 'Dairy', 'Eggs', 'Seafood', 'Beverage', 'Meat', 'Bread', 'Pantry']
+
+function localDate() {
+  const now = new Date()
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+}
+
+function GroceryEditor({item, onSave, onCancel}) {
+  const [draft, setDraft] = useState(item)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  function change(event) {
+    const {name, value} = event.target
+    setDraft(previous => ({...previous, [name]: name === 'quantity' ? Number(value) : value}))
+  }
+  async function submit(event) {
+    event.preventDefault()
+    setSaving(true)
+    setError('')
+    try { await onSave({...draft, expiration_date: draft.expiration_date || null}) }
+    catch (error) { setError(error.message) }
+    finally { setSaving(false) }
+  }
+  return <form className="grocery-editor" onSubmit={submit} aria-label={`Edit ${item.name}`}>
+    <fieldset disabled={saving}>
+      <legend>Edit grocery item</legend>
+      <label>Name<input name="name" value={draft.name} maxLength={100} required onChange={change} /></label>
+      <label>Quantity<input name="quantity" type="number" min="0" step="1" required value={draft.quantity} onChange={change} /></label>
+      <label>Category<select name="category" value={draft.category} onChange={change}>{GROCERY_CATEGORIES.map(value => <option key={value}>{value}</option>)}</select></label>
+      <label>Storage<select name="storage_location" value={draft.storage_location} onChange={change}>{['fridge', 'freezer', 'pantry'].map(value => <option key={value}>{value}</option>)}</select></label>
+      <label>Purchase date<input name="purchase_date" type="date" required value={draft.purchase_date} onChange={change} /></label>
+      <label>Expiration date<input name="expiration_date" type="date" value={draft.expiration_date || ''} onChange={change} /></label>
+      {error && <p role="alert">{error}</p>}
+      <button type="submit">{saving ? 'Saving…' : 'Save changes'}</button>
+      <button type="button" onClick={onCancel}>Cancel</button>
+    </fieldset>
+  </form>
+}
 
 function getFoodStatus(dateString){
   if(!dateString){
@@ -741,20 +765,13 @@ function AddFoodModal({isOpen, onClose, onSaveItem}){
   const [query, setQuery] = useState('');
   const [activeFoodItem, setActiveFoodItem] = useState(null);
   const [quantity, setQuantity] = useState(1);
-  const [dateType, setDateType] = useState('bestBy');
+  const [storage, setStorage] = useState('fridge');
+  const [purchaseDate, setPurchaseDate] = useState(() => localDate());
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
   const [selectedDate, setSelectedDate] = useState('');
-  const [category, setCategory] = useState('Other');
+  const [category, setCategory] = useState('Pantry');
   const inputRef = useRef(null);
-
-  useEffect(() => {
-    if (activeFoodItem) {
-      const defaultDate = new Date();
-      defaultDate.setDate(defaultDate.getDate() + 7);
-      setSelectedDate(defaultDate.toISOString().split('T')[0]);
-      setQuantity(1);
-      
-    }
-  }, [activeFoodItem]);
 
   useEffect(() => {
     if (isOpen && !activeFoodItem) {
@@ -772,19 +789,22 @@ function AddFoodModal({isOpen, onClose, onSaveItem}){
 
   const handleSelectFood = (foodName) => {
     if (!foodName.trim()) return;
+    const defaultDate = new Date();
+    defaultDate.setDate(defaultDate.getDate() + 7);
+    setSelectedDate(defaultDate.toISOString().split('T')[0]);
+    setQuantity(1);
+    setSaveError('');
     setActiveFoodItem({ name: foodName.trim() });
   };
 
-  const handleSave = () => {
-    const itemData = {
-      name: activeFoodItem.name.trim().toLowerCase(),
-      quantity,
-      dateType,
-      date: selectedDate,
-      category,
-    };
-    if (onSaveItem) onSaveItem(itemData);
-    resetAndClose();
+  const handleSave = async () => {
+    setSaving(true)
+    setSaveError('')
+    try {
+      await onSaveItem({ name: activeFoodItem.name, quantity, category, purchase_date: purchaseDate, storage_location: storage, expiration_date: selectedDate || null })
+      resetAndClose()
+    } catch (error) { setSaveError(error.message) }
+    finally { setSaving(false) }
   };
 
   return(
@@ -868,7 +888,7 @@ function AddFoodModal({isOpen, onClose, onSaveItem}){
               <div className="add-food-group">
                 <label className="add-food-field-label">Food Category</label>
                 <div className="category-container">
-                  {['Produce 🍎', 'Dairy 🥛', 'Meat 🍖', 'Pantry 🍪', 'Other 🍱'].map((cat) =>{
+                  {GROCERY_CATEGORIES.map((cat) =>{
                     const isSelected = category === cat;
                     return(
                       <button
@@ -886,29 +906,17 @@ function AddFoodModal({isOpen, onClose, onSaveItem}){
 
    
             <div className="add-food-group">
-              <label className="add-food-field-label">Date Type</label>
-              <div className="add-food-toggle">
-                <button
-                  type="button"
-                  className={`add-food-toggle-button ${dateType === 'bestBy' ? 'active' : ''}`}
-                  onClick={() => setDateType('bestBy')}
-                >
-                  Best By Date
-                </button>
-                <button
-                  type="button"
-                  className={`add-food-toggle-button ${dateType === 'expiration' ? 'active' : ''}`}
-                  onClick={() => setDateType('expiration')}
-                >
-                  Expiration Date
-                </button>
-              </div>
+                              <label className="add-food-field-label" htmlFor="food-storage">Storage</label>
+                <select id="food-storage" value={storage} onChange={e => setStorage(e.target.value)}>
+                  {['fridge', 'freezer', 'pantry'].map(value => <option key={value}>{value}</option>)}
+                </select>
+                <label className="add-food-field-label" htmlFor="food-purchase">Purchase date</label>
+                <input id="food-purchase" type="date" required value={purchaseDate} onChange={e => setPurchaseDate(e.target.value)} />
             </div>
 
-  
             <div className="add-food-group">
               <label className="add-food-field-label">
-                {dateType === 'bestBy' ? 'Best By Date' : 'Expiration Date'}
+                Expiration Date (optional)
               </label>
               <input
                 type="date"
@@ -918,6 +926,7 @@ function AddFoodModal({isOpen, onClose, onSaveItem}){
               />
             </div>
 
+            {saveError && <p role="alert">{saveError}</p>}
             <div className="add-food-footer">
               <button 
                 className="add-food-button add-food-button-secondary" 
@@ -927,9 +936,9 @@ function AddFoodModal({isOpen, onClose, onSaveItem}){
               </button>
               <button 
                 className="add-food-button add-food-button-primary" 
-                onClick={handleSave}
+                disabled={saving || !purchaseDate} onClick={handleSave}
               >
-                Save Item
+                {saving ? 'Saving…' : 'Save Item'}
               </button>
             </div>
 
@@ -941,25 +950,10 @@ function AddFoodModal({isOpen, onClose, onSaveItem}){
   );
 }
 
-const getHighBudget = (budgetVal) => {
-  if (!budgetVal) return 0;
-  if (typeof budgetVal === 'number') return budgetVal;
-  if (Array.isArray(budgetVal)) return Math.max(...budgetVal);
-  if (typeof budgetVal === 'string') {
-    const numbers = budgetVal.match(/\d+/g);
-    if (numbers && numbers.length > 0) {
-      return parseFloat(numbers[numbers.length - 1]);
-    }
-  }
-  return 0;
-};
-
-function ShoppingListModal({ isOpen, onClose, onGenerateList, answers}){
+function ShoppingListModal({ isOpen, onClose, onGenerateList}){
   
   const[budget, setBudget] = useState(50);
   const resetAndClose = () => {
-    setActiveFoodItem(null);
-    setQuery('');
     onClose();
   };
 
@@ -976,7 +970,7 @@ function ShoppingListModal({ isOpen, onClose, onGenerateList, answers}){
   return (
     
     <div className="add-food-backdrop" onClick={onClose}>
-      <div className="add-food-content" onClick={(e) => e.stopPropagation}>
+      <div className="add-food-content" onClick={(e) => e.stopPropagation()}>
         <button className="add-food-close-button" onClick={resetAndClose}>
           ✕
         </button>
@@ -1044,8 +1038,8 @@ function ShoppingListModal({ isOpen, onClose, onGenerateList, answers}){
   )
 }
 
-function RecipesPage({fridgeItems, onBackToDashboard, answers}){
-  const firstLetter = answers?.name ? answers.name.charAt(0).toUpperCase() : ' ';
+function RecipesPage({items, onBackToDashboard, answers}){
+  const firstLetter = answers?.name ? answers.name.charAt(0).toUpperCase() : 'Y';
   const[recipes, setRecipes] = useState([
     {
       id: 1,
@@ -1107,19 +1101,19 @@ function RecipesPage({fridgeItems, onBackToDashboard, answers}){
     useSoonOnly:false,
     maxTime: 'all'
   });
-  const[shoppingList, setShoppingList] = useState([]);
+  const[, setShoppingList] = useState([]);
 
   
 
   const handleGenerateAiRecipes = async() => {
     setIsLoading(true);
     setError(null);
-    
+
     try{
-      if(!fridgeItems?.length){
+      if(!items?.length){
         setError('Add some ingredients to your fridge before generating recipes.');
-      } 
-      } catch (err){
+      }
+      } catch {
         setError('Something went wrong while generating recipes.');
     } finally {
       setIsLoading(false);
@@ -1136,7 +1130,7 @@ function RecipesPage({fridgeItems, onBackToDashboard, answers}){
     )
   );
 
-  setSelectedRecipe((prev) => 
+  setSelectedRecipe((prev) =>
   prev?.id === recipeId
     ? {...prev, saved: !prev.saved}
     : prev
@@ -1158,12 +1152,17 @@ function RecipesPage({fridgeItems, onBackToDashboard, answers}){
     return match ? Number(match[0]) : 0;
   };
 
-  const filteredRecipes = recipes.filter(recipe => {
-    const missingCount = recipe.totalIngredients - recipe.matchCount;
-
-    if(savedFilterActive && !recipe.saved) return false;
-    if(activeFilters.cookNowOnly && missingCount > 0) return false;
-    if(activeFilters.missingOnly && missingCount === 0) return false;
+  const inventoryRecipes = recipes.map(recipe => {
+    const ingredients = recipe.ingredients.map(ingredient => ({
+      ...ingredient,
+      inFridge: items.some(item => item.quantity > 0 && item.name.toLowerCase() === ingredient.name.toLowerCase()),
+    }))
+    return { ...recipe, ingredients, matchCount: ingredients.filter(ingredient => ingredient.inFridge).length }
+  })
+  const filteredRecipes = inventoryRecipes.filter(recipe => {
+    if(savedFilterActive && !recipe.saved)return false;
+    if(activeFilters.cookNowOnly && recipe.matchCount < recipe.totalIngredients) return false;
+    if(activeFilters.missingOnly && recipe.matchCount === recipe.totalIngredients) return false;
     if(activeFilters.useSoonOnly && !recipe.usesExpiringItem) return false;
     if(activeFilters.maxTime !== 'all' && getPrepTime(recipe.prepTime) > Number(activeFilters.maxTime)) return false;
     return true;
@@ -1179,10 +1178,10 @@ function RecipesPage({fridgeItems, onBackToDashboard, answers}){
     setSavedFilterActive(false);
   }
 
-  const hasActiveFilters = 
-  savedFilterActive || 
+  const hasActiveFilters =
+  savedFilterActive ||
   activeFilters.cookNowOnly ||
-  activeFilters.useSoonOnly || 
+  activeFilters.useSoonOnly ||
   activeFilters.missingOnly ||
   activeFilters.maxTime !== 'all';
 
@@ -1450,7 +1449,7 @@ function RecipesPage({fridgeItems, onBackToDashboard, answers}){
                     missingOnly: event.target.checked ? false : prev.missingOnly,
                   }))
                   }
-                  
+
                   />
                   <span>Cook Now (100% Fridge Match)</span>
                 </label>
@@ -1465,7 +1464,7 @@ function RecipesPage({fridgeItems, onBackToDashboard, answers}){
                       missingOnly: checked,
                       cookNowOnly: checked ? false : prev.cookNowOnly,
                     }));
-                  }} 
+                  }}
                   />
                   <span>Recipes with Missing Ingredients</span>
                   </label>
@@ -1474,7 +1473,7 @@ function RecipesPage({fridgeItems, onBackToDashboard, answers}){
                   <input
                   type="checkbox"
                   checked={activeFilters.useSoonOnly}
-                  onChange={(event) => setActiveFilters({...prev, useSoonOnly: event.target.checked})}
+                  onChange={(event) => setActiveFilters(previous => ({...previous, useSoonOnly: event.target.checked}))}
                   />
                   <span>Uses Expiring Ingredients</span>
                 </label>
@@ -1491,7 +1490,7 @@ function RecipesPage({fridgeItems, onBackToDashboard, answers}){
 
                 <select
                 value={activeFilters.maxTime}
-                onChange={(event) => 
+                onChange={(event) =>
                   setActiveFilters((prev) => ({
                     ...prev,
                     maxTime: event.target.value,
@@ -1567,12 +1566,12 @@ function RecipesPage({fridgeItems, onBackToDashboard, answers}){
             <ul style={{ listStyle: 'none', padding: '12px', margin: 0, background: '#f7f8f4', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
               {selectedRecipe.ingredients?.map((ingredient, index) => (
                 <li key={index} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', fontSize: '0.85rem', marginBottom: '6px' }}>
-                    <span 
+                    <span
                     style={{
                       color: ingredient.inFridge ? '#1f2937' : '#c2410c', fontWeight: ingredient.inFridge ? 400 : 500,
                     }}
                     >{ingredient.inFridge ? '✓ ' : 'x '}{ingredient.name}</span>
-                    
+
                   <span style = {{fontSize: '0.75rem', color: ingredient.inFridge ? '#1b4332' : '#e65100', fontWeight: 600, whiteSpace: 'nowrap'}}>
                     {ingredient.inFridge ? 'In Fridge' : "Need to buy"}
                   </span>
@@ -1607,11 +1606,11 @@ function RecipesPage({fridgeItems, onBackToDashboard, answers}){
                   }
                 </button>
 
-              
+
 
               <button
               onClick={() => {
-                alert('Recipe has been cooked, Ingredients have been removed from the fridge.');
+                alert('To record ingredients used, update their quantities in your grocery inventory.');
                 setSelectedRecipe(null);
               }}
               className="recipe-button-2 recipe-button-2-primary"
@@ -1623,6 +1622,24 @@ function RecipesPage({fridgeItems, onBackToDashboard, answers}){
       )}
     </div>
   );
+}
+
+function App() {
+  const [user, setUser] = useState(null)
+  const [ready, setReady] = useState(false)
+  const [error, setError] = useState('')
+  useEffect(() => {
+    let active = true
+    api('accounts/session/').then(data => { if (active) setUser(data.user) })
+      .catch(() => { if (active) setError('Could not connect to your grocery account. Please try again later.') })
+      .finally(() => { if (active) setReady(true) })
+    return () => { active = false }
+  }, [])
+  if (!ready) return <p role="status">Loading GroceryBuddy…</p>
+  return <>
+    {error && <p role="alert">{error}</p>}
+    <Onboarding user={user} />
+  </>
 }
 
 export default App

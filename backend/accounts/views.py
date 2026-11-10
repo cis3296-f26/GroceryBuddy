@@ -103,3 +103,13 @@ def current_user(request):
 def session_logout(request):
     logout(request)
     return JsonResponse({"detail": "Signed out.", "csrf_token": get_token(request)})
+
+
+@never_cache
+@require_GET
+def session(request):
+    user = request.user
+    return JsonResponse({
+        "user": {"id": user.pk, "username": user.username} if user.is_authenticated else None,
+        "csrfToken": get_token(request),
+    })

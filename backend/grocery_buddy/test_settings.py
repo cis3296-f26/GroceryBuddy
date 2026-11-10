@@ -1,13 +1,19 @@
-"""Run tests on PostgreSQL using the connection configured in backend/.env.
+"""Isolated PostgreSQL tests; never use the shared application's connection."""
 
-Django creates a separate test_<database name> database on that server and
-removes it after the run. The database role must have CREATEDB permission.
-"""
-from django.core.exceptions import ImproperlyConfigured
+import os
 
-from .settings import *  # noqa: F403
+# Supply harmless defaults before importing settings so tests need no .env file.
+os.environ.setdefault("SECRET_KEY", "inventory-tests-only-secret-key")
+os.environ.setdefault("DATABASE_URL", "postgresql://localhost/grocerybuddy_test_config")
 
-if DATABASES["default"]["ENGINE"] != "django.db.backends.postgresql":  # noqa: F405
-    raise ImproperlyConfigured("Inventory tests require a PostgreSQL DATABASE_URL.")
+from .settings import *  # noqa: F403,E402
+
+_test_url = os.environ.get("TEST_DATABASE_URL")
+if not _test_url:
+    raise ValueError("Set TEST_DATABASE_URL to a dedicated PostgreSQL test server.")
+
+DATABASES = {"default": dj_database_url.parse(_test_url, conn_max_age=0)}
+if DATABASES["default"]["ENGINE"] != "django.db.backends.postgresql":
+    raise ValueError("TEST_DATABASE_URL must use PostgreSQL.")
 
 PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]

@@ -780,7 +780,7 @@ fieldset {
   font-weight: 600;
   margin-left: 10px;
   color: #ffffff;
-  
+
   opacity: 0;
   transform: translateX(-6px);
   transition: opacity 0.25s ease 0.1s, transform 0.25s ease 0.1s;
@@ -1042,7 +1042,7 @@ color: #fecaca;
 
 .fride-category-emoji{
   margin-left: 7px;
-  font-size: 1.2rem; 
+  font-size: 1.2rem;
 }
 
 .fridge-item .food-status-tag{
@@ -1093,8 +1093,8 @@ color: #fecaca;
 .dashboard-right{
   display: inline-block;
   vertical-align: top;
-  width: calc(100% - 530px); 
-  margin-left: 30px; 
+  width: calc(100% - 530px);
+  margin-left: 30px;
   margin-top: 50px;
   box-sizing: border-box;
   font-size: 16px;
@@ -1244,7 +1244,7 @@ color: #fecaca;
   margin-bottom: 0px;
   margin-left: auto;
   margin-right: 200px;
-  
+
 }
 
 .dashboard-search-input{
@@ -2241,3 +2241,11 @@ transform: translateX(4px);
   50%{opacity: 1;}
   100%{opacity: 0.6;}
 }
+
+.grocery-details { display: grid; gap: 6px; }
+.grocery-details span { font-size: 13px; }
+.grocery-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.grocery-editor { margin: 18px 0; }
+.grocery-editor fieldset { display: grid; gap: 12px; border: 1px solid #71864e; border-radius: 10px; padding: 16px; }
+.grocery-editor label { display: grid; gap: 5px; }
+.grocery-editor input, .grocery-editor select { width: 100%; box-sizing: border-box; padding: 8px; font: inherit; }
