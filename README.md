@@ -4,7 +4,15 @@
 
 Grocery Buddy is a web app that helps college students keep track of their groceries and eat food before it goes bad. Students add groceries in a few quick steps: the food, how much they have, where it is stored (fridge, freezer, or pantry), and the date they bought it. The app estimates how long each item will last and shows a dashboard with labels like "Use Today," "Use Soon," "Good for Now," and "Past Estimate." Students can mark food as used or thrown away, keep a shopping list, and get AI recipe ideas for food that needs to be used soon.
 
-**Project status:** The React frontend and Django/PostgreSQL backend are in development. The backend provides authenticated grocery CRUD and a health endpoint. Google sign-in, recipes, and shopping endpoints are not implemented on this branch.
+![Grocery Buddy landing page](docs/landing-page.png)
+
+**Project status:** The app has three pages so far:
+
+- **Landing page:** shows the "EAT ME FIRST." letter tiles, a short description, the four item statuses, three feature cards, and a fridge drawing with sticky notes. Clicking **Sign in** opens onboarding.
+- **Onboarding:** a short quiz about how the student shops and cooks.
+- **Dashboard:** sorts items into the four status columns. It uses sample data for now.
+
+Moving between pages plays a slide animation. Item tracking, the shopping list and AI recipe ideas are still being built, along with the Django backend described below.
 
 ## Installation Instructions
 
@@ -95,7 +103,7 @@ Edit `backend/.env` and set:
 
 The settings load `.env` from the backend directory. Existing process environment variables take precedence. Never put database credentials in frontend code or `VITE_` variables.
 
-Git ignores `.env` files and `.venv/`. Commit `.env.example` with placeholders only. Each developer should create their own virtual environment and obtain credentials privately.
+Git ignores `.env` files and `.venv/`. Commit `.env.example` with placeholders only. Each developer should create their own virtual environment and obtains credentials privately.
 
 ## Run Locally
 
@@ -119,7 +127,7 @@ Open http://127.0.0.1:8000/api/health/. Expected response:
 {"status": "ok"}
 ```
 
-The health endpoint confirms Django is serving requests. `python manage.py showmigrations` checks database connectivity and lists migration status.
+The health endpoint confirms Django is serving requests; use the database verification command above to check database connectivity separately.
 
 ### Terminal 2: Frontend
 
@@ -139,113 +147,8 @@ Press `Ctrl+C` in each terminal to stop its server. React updates as frontend fi
 | --- | --- |
 | `/api/health/` | Returns `{"status": "ok"}` |
 | `/api/accounts/` | Reserved for account endpoints |
-| `/api/inventory/items/` | Authenticated grocery CRUD endpoints |
-| `/api/auth/login/` | Browsable API session login |
+| `/api/inventory/` | Reserved for inventory endpoints |
 | `/api/recipes/` | Reserved for recipe endpoints |
 | `/api/shopping/` | Reserved for shopping endpoints |
 
 Reserved routes currently return 404 until their endpoints are implemented.
-
-
-## Grocery Management Backend
-
-The inventory app now includes a `GroceryItem` model mapped to
-`inventory_groceryitem`, a serializer, admin registration, and CRUD endpoints.
-Each item belongs to a Django user. Requests only see that user's items, and
-creation assigns ownership from the signed-in user. Quantity must be a nonnegative integer; expiration date is optional. Names are
-limited to 100 characters. Categories use the choices in
-`backend/inventory/models.py`, and storage is `fridge`, `freezer`, or `pantry`.
-Purchase date defaults to today and storage defaults to `fridge`.
-The model matches the committed initial inventory migration.
-
-### API usage
-
-For local development, create a Django user with `python manage.py createsuperuser`
-after applying migrations, then sign in at `/api/auth/login/`. Any active Django
-user can use the API; staff status is not required. Session-authenticated writes
-must include the `X-CSRFToken` header with the current `csrftoken` cookie value.
-The browsable API includes CSRF tokens in its forms.
-
-- `GET /api/inventory/items/`: list the signed-in user's groceries, ordered by ID.
-- `POST /api/inventory/items/`: create an item (201).
-- `GET /api/inventory/items/<id>/`: retrieve an item.
-- `PUT` or `PATCH /api/inventory/items/<id>/`: replace or update an item.
-- `DELETE /api/inventory/items/<id>/`: delete an item (204).
-
-Example create body:
-
-```json
-{"name": "Milk", "quantity": 2, "category": "Dairy", "storage_location": "fridge"}
-```
-
-Responses also include `id`, `user`, `purchase_date`, and `expiration_date`.
-`id` and `user` are read-only; the server assigns ownership. Invalid input returns
-400, anonymous requests return 403, and another user's item returns 404.
-
-### Database migrations
-
-With the backend environment configured, inspect migration status first:
-
-```bash
-cd backend
-python manage.py showmigrations
-```
-
-For a **new, empty development database**, create the tables with:
-
-```bash
-python manage.py migrate
-```
-
-For the **existing shared database**, check with the database maintainer before
-applying migrations. Verify that the existing inventory table matches the model
-(including column types, lengths, nullability, foreign key, and quantity check)
-and inspect the recorded migration history. If the table exists but the matching
-initial migration is not recorded, `python manage.py migrate --fake-initial` can
-record it without recreating the table. Django's initial-migration detection does
-not verify full schema compatibility, so do not use this to bypass a mismatch.
-No shared database migrations were run as part of this implementation.
-
-### Run inventory tests on PostgreSQL
-
-Tests require a dedicated PostgreSQL server supplied through `TEST_DATABASE_URL`.
-They do not use the shared application's `DATABASE_URL`. The test role must have
-permission to create databases. Django creates and deletes a separate
-`test_<database name>` database; never use a shared application or shared test
-server for this command.
-
-```bash
-cd backend
-source .venv/bin/activate
-export TEST_DATABASE_URL='postgresql://localhost/grocerybuddy'
-python manage.py test --settings=grocery_buddy.test_settings --noinput
-python manage.py check
-python manage.py makemigrations --check --dry-run
-```
-
-Use credentials and SSL options appropriate to your dedicated test server.
-The suite covers CRUD, field validation, defaults, ownership isolation, and
-session/CSRF enforcement. It creates its schema from migrations; it does not
-verify the existing shared database's schema. Before deploying, the database
-maintainer must verify that schema and apply or reconcile migrations as described
-above. Google sign-in remains separate work; local session login supports testing
-inventory in the meantime.
-
-GitHub Actions runs these backend checks against an isolated PostgreSQL service
-on pushes and pull requests.
-
-### Frontend session integration
-
-Start Django in `backend/` with `.venv/bin/python manage.py runserver` and Vite
-from the repository root with `npm run dev`. Open the Vite URL. Signed-out users
-are directed to Django's existing login page and returned to the frontend afterward.
-Use an existing Django account. Cayla's onboarding, dashboard and Add Food modal
-are retained. The existing item list loads from the backend and Save Item persists
-new groceries. Category defaults to Pantry and storage to fridge because the
-original form has no controls for those fields. Both date choices map to the
-backend's single expiration_date field; the backend does not store date type.
-
-JSON session endpoints remain available at `/api/accounts/session/`,
-`/api/accounts/login/`, and `/api/accounts/logout/`. Session responses supply a
-CSRF token for writes. Vite preserves the incoming host for same-origin checks.
-Use the Vite address consistently; in deployment serve `/api` on the frontend origin.
