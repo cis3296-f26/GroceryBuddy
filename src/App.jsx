@@ -1403,7 +1403,7 @@ function RecipesPage({fridgeItems, onBackToDashboard, answers}){
                     flexShrink: 0,
                   }}
                   >
-                    {recipe.saved ? '🤍' : '❤️'}
+                    {recipe.saved ? '❤️' : '🤍'}
                   </button>
                   </div>
 
