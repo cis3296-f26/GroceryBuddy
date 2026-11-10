@@ -515,6 +515,7 @@ function Dashboard ({answers}){
       <RecipesPage
       fridgeItems={fridgeItems}
       onBackToDashboard={() => setCurrentView('Dashboard')}
+      answers={answers}
       />
     );
   }
@@ -553,16 +554,44 @@ function Dashboard ({answers}){
         </div>
         </div>
       </header>
-      <div>
-        <h1 className="user-welcome">Welcome to Your Dashboard {answers.name}!</h1>
+      <div className="welcome-section">
+        <p className="welcome-eyebrow">
+          🛒 YOUR GROCERYBUDDY HOME
+        </p>
+        <h1 className="user-welcome">Welcome, {answers.name}!</h1>
+        <p className="welcome-subtitle">
+          Let's keep track of your kitchen.
+        </p>
       </div>
       <div classname="dashboard-layout">
           <div className="fridge-card">
-            <h2 className="fridge-title">My Fridge</h2>
+            <div className="fridge-header">
+              <div>
+                <h2 className="fridge-title">❄️ My Fridge</h2>
+              </div>
 
-            {fridgeItems.length === 0 ? (
-              <p className="empty-text">Your Fridge is Empty</p>
-            ) : (
+              <div className="fridge-temperature">
+                🧊 35° F
+              </div>
+            </div>
+
+            <div className="fridge-summary">
+            <strong>
+              {fridgeItems.length === 0
+              ? "Your fridge is empty! "
+              : "Keep Adding Items! "
+              }
+            </strong>
+
+            <p>
+              You have {fridgeItems.length}{" "}
+              {fridgeItems.length === 1 ? "food" : "foods"} stored inside.
+            </p>
+            </div>
+
+            
+
+            
               <ul>
                 {fridgeItems.map((item) => {
                   const foodStatus = getFoodStatus(item.date);
@@ -591,8 +620,8 @@ function Dashboard ({answers}){
                   );
                 })}
               </ul>
-            )
-            }
+            
+            
 
             <button
             type="button"
@@ -622,8 +651,11 @@ function Dashboard ({answers}){
             className="recipes-button"
             onClick={() => setCurrentView('Recipes')}
             >
+              <span className="dashboard-button-content">
               <span className="recipes-button-title">Get Recipes</span>
-              <span className="recipe-button-description">Let us generate some recipes for you</span>
+              <span className="recipe-button-description">Let us generate some recipes for you.</span>
+              </span>
+              <span className="dashboard-button-icon">🥘</span>
             </button>
             
 
@@ -636,8 +668,11 @@ function Dashboard ({answers}){
               setIsShoppingModalOpen(true);
             }}
             >
-              <span className="shoppinglist-button-title">Generate a Shopping List</span>
+              <span className="dashboard-button-content">
+              <span className="shoppinglist-button-title">Create a Shopping List</span>
               <span className="shoppinglist-button-description">We'll create a list for all of the foods you love!</span>
+              </span>
+              <span className="dashboard-button-icon">📝</span>
             </button>
 
             <ShoppingListModal
@@ -653,8 +688,11 @@ function Dashboard ({answers}){
             className="waste-button"
             onClick={() => alert("Prior Wastes Clicked")}
             >
+              <span className="dashboard-button-content">
               <span className="waste-button-title">Check Your Prior Wastes</span>
-              <span className="waste-button-description">Keep track of what you're not eating</span>
+              <span className="waste-button-description">Keep track of all your habits.</span>
+              </span>
+              <span className="dashboard-button-icon">♻</span>
             </button>
           </div>
       </div>
@@ -1007,7 +1045,7 @@ function ShoppingListModal({ isOpen, onClose, onGenerateList, answers}){
 }
 
 function RecipesPage({fridgeItems, onBackToDashboard, answers}){
-  const firstLetter = answers?.name ? answers.name.charAt(0).toUpperCase() : 'Y';
+  const firstLetter = answers?.name ? answers.name.charAt(0).toUpperCase() : ' ';
   const[recipes, setRecipes] = useState([
     {
       id: 1,
@@ -1171,13 +1209,13 @@ function RecipesPage({fridgeItems, onBackToDashboard, answers}){
           onClick={() => setIsFilterModalOpen(true)}
           className="recipe-button-2 recipe-button-2-light"
           aria-label="Open recipe filters"
-          >⚙️</button>
+          >Filters</button>
         </div>
         <div className="profile-dropdown-container">
        
         <button className="profile-button">
           <span className="profile-initial">{firstLetter}.</span>
-          <span className="profile-fullname">{answers?.name || 'You'}</span>
+          <span className="profile-fullname">{answers?.name}</span>
         </button>
         <div className="dropdown-menu">
           <a href="#profile" className="dropdown-item">Your Profile</a>
@@ -1200,7 +1238,7 @@ function RecipesPage({fridgeItems, onBackToDashboard, answers}){
         disabled={isLoading}
         className="recipe-button-2 recipe-button-2-primary"
         >
-          {isLoading ? 'Generating...' : 'Generate Recipes'}
+          {isLoading ? 'Generating...' : 'Explore Recipes'}
         </button>
       </div>
 
@@ -1239,7 +1277,7 @@ function RecipesPage({fridgeItems, onBackToDashboard, answers}){
               margin: 0,
             }}
             >
-              Creating Meals around the items in your fridge.
+              Creating meals around the items in your fridge.
             </p>
           </div>
 
@@ -1265,7 +1303,7 @@ function RecipesPage({fridgeItems, onBackToDashboard, answers}){
             }`}
             onClick={() => setSavedFilterActive(true)}
             >
-              ❤️Saved
+              ❤️ Saved
             </button>
           </div>
       </div>
@@ -1365,7 +1403,7 @@ function RecipesPage({fridgeItems, onBackToDashboard, answers}){
                     flexShrink: 0,
                   }}
                   >
-                    {recipe.saved ? '❤️' : '🤍'}
+                    {recipe.saved ? '🤍' : '❤️'}
                   </button>
                   </div>
 
