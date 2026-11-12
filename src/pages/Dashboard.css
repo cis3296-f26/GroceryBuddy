@@ -351,3 +351,13 @@
     width: 100%;
   }
 }
+
+.dash-editor { background: white; border-radius: 18px; padding: 24px; margin: 24px 0; }
+.dash-editor fieldset { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; border: 0; padding: 0; }
+.dash-editor legend { font-weight: 700; margin-bottom: 16px; }
+.dash-editor label { display: grid; gap: 6px; font-size: 14px; }
+.dash-editor input, .dash-editor select { width: 100%; box-sizing: border-box; border: 1px solid #cddbc4; border-radius: 10px; background: white; color: #1e4d3a; padding: 10px; font: inherit; }
+.dash-editor-actions { display: flex; gap: 12px; grid-column: 1 / -1; }
+.dash-nav-item:disabled { opacity: .65; cursor: default; }
+.dash-card-actions { flex-wrap: wrap; }
+@media (max-width: 600px) { .dash-editor fieldset { grid-template-columns: 1fr; } }
