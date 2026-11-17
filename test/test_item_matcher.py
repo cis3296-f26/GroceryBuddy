@@ -3,8 +3,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-# Let the tests import from src/food_matcher
-sys.path.insert(0, str(Path(__file__).parent.parent / "src" / "food_matcher"))
+# Import the same service packages available when Django runs from backend/
+sys.path.insert(0, str(Path(__file__).parent.parent / "backend"))
 
 # Use a fake google module if google-genai isn't installed, so the tests still run
 try:
@@ -14,15 +14,15 @@ except ImportError:
     sys.modules["google"] = google
     sys.modules["google.genai"] = google.genai
 
-from ai_matcher import FOOD_TYPES, MODEL, match_with_ai
-from signature_matcher import match_food
+from inventory.services.ai_matcher import FOOD_TYPES, MODEL, match_with_ai
+from inventory.services.signature_matcher import match_food
 
 
 class TestSignatureMatcher(unittest.TestCase):
 
     def setUp(self):
         # Replace the AI with a fake so no test ever calls Gemini
-        self.ai = patch("signature_matcher.match_with_ai", return_value="Protein").start()
+        self.ai = patch("inventory.services.signature_matcher.match_with_ai", return_value="Protein").start()
         self.addCleanup(patch.stopall)
 
     def test_single_word(self):
@@ -76,7 +76,7 @@ class TestAIMatcher(unittest.TestCase):
 
     def setUp(self):
         # Replace the Gemini client with a fake that always answers "Vegetable"
-        client_class = patch("ai_matcher.genai.Client").start()
+        client_class = patch("inventory.services.ai_matcher.genai.Client").start()
         self.addCleanup(patch.stopall)
         self.generate = client_class.return_value.models.generate_content
         self.generate.return_value.text = "Vegetable"
