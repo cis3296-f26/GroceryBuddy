@@ -1,9 +1,4 @@
-import json
-
-from google import genai
-from google.genai import types
-
-MODEL = "gemini-3.5-flash-lite"
+from grocery_buddy.ai import generate_json
 
 FOOD_TYPES = ["Fruit", "Vegetable", "Grain", "Protein", "Dairy", "Eggs", "Seafood", "Beverage", "Meat", "Bread", "Pantry"]
 
@@ -14,7 +9,6 @@ def format_history(history):
     )
 
 def make_shopping_list(history, current_items):
-    client = genai.Client()
     prompt = "\n".join([
         "You are a shopping assistant for college students who want to buy what they need without wasting food.",
         "",
@@ -24,6 +18,8 @@ def make_shopping_list(history, current_items):
         "- Don't suggest foods they already have.",
         "- For foods they often toss, suggest a smaller quantity or skip them.",
         "- Add at most 2 new foods that go well with what they usually buy.",
+        "- If history is empty, base suggestions only on current items; don't claim past purchases or habits.",
+        "- Suggest at most 20 items.",
         "- Use only these categories: " + ", ".join(FOOD_TYPES) + ".",
         "- Give a short reason for each suggestion.",
         "- Return only JSON, with no other text.",
@@ -50,16 +46,7 @@ def make_shopping_list(history, current_items):
         "Current items: " + (", ".join(current_items) or "none"),
         "Answer:",
     ])
-    response = client.models.generate_content(
-        model=MODEL,
-        contents=prompt,
-        config=types.GenerateContentConfig(
-            temperature=0.5,
-            max_output_tokens=1500,
-            response_mime_type="application/json",
-        )
-    )
-    return json.loads(response.text)
+    return generate_json(prompt, temperature=0.5, max_output_tokens=1500)
 
 if __name__ == "__main__":
     history = [

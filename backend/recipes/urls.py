@@ -1,3 +1,5 @@
 from django.urls import path
 
-urlpatterns = []
+from .views import GenerateRecipesView
+
+urlpatterns = [path("generate/", GenerateRecipesView.as_view(), name="generate-recipes")]

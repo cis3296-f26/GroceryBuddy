@@ -1,12 +1,6 @@
-import json
-
-from google import genai
-from google.genai import types
-
-MODEL = "gemini-3.5-flash-lite"
+from grocery_buddy.ai import generate_json
 
 def make_recipe(food_items):
-    client = genai.Client()
     prompt = "\n".join([
         "You are a cooking assistant for college students who want to use up their groceries before they go bad.",
         "",
@@ -17,6 +11,7 @@ def make_recipe(food_items):
         "- Give each recipe a different cooking method or style.",
         "- Write short, numbered steps a beginner can follow.",
         "- Return only JSON, with no other text.",
+        "- In uses, copy the food item names exactly as listed.",
         "",
         "Example",
         "Food items: spinach, eggs, cheddar cheese, tortillas",
@@ -42,16 +37,7 @@ def make_recipe(food_items):
         ", ".join(food_items),
         "Answer:",
     ])
-    response = client.models.generate_content(
-        model=MODEL,
-        contents=prompt,
-        config=types.GenerateContentConfig(
-                    temperature=0.8,
-                    max_output_tokens=2500,
-                    response_mime_type="application/json",
-        )
-    )
-    return json.loads(response.text)
+    return generate_json(prompt, temperature=0.8, max_output_tokens=2500)
 
 if __name__ == "__main__":
     for recipe in make_recipe(["chicken", "broccoli", "rice", "garlic"]):
