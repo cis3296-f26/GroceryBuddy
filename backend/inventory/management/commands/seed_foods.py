@@ -5,7 +5,7 @@ from inventory.models import FoodType  # the table we are filling
 # We use the low end of each range so estimates stay on the safe side.
 # 1 week = 7 days, 1 month = 30 days, 1 year = 365 days.
 # None means USDA gives no number of days for that storage place.
-# Rice, orange juice, bread, and ketchup only have a fridge number for after opening, so we use that.
+# Rice, orange juice, bread, ketchup, and tortillas only have a fridge number for after opening, so we use that.
 
 # Each line is: (name, category, fridge days, freezer days, pantry days)
 FOODS = [
@@ -39,6 +39,18 @@ FOODS = [
     ("Bread", "Bread", 14, 90, 14),
     ("Peanut butter", "Pantry", None, None, 180),
     ("Ketchup", "Pantry", 180, None, 365),
+    ("Grapes", "Fruit", 7, 30, 1),
+    ("Avocados", "Fruit", 3, None, None),
+    ("Watermelon", "Fruit", 3, 360, 1),
+    ("Bell peppers", "Vegetable", 4, 180, None),
+    ("Mushrooms", "Vegetable", 3, 300, None),
+    ("Cucumbers", "Vegetable", 4, None, None),
+    ("Cottage cheese", "Dairy", 14, None, None),
+    ("Ice cream", "Dairy", None, 180, None),
+    ("Beef steak", "Meat", 3, 120, None),
+    ("Hot dogs", "Meat", 14, 30, None),
+    ("Ground turkey", "Meat", 1, 90, None),
+    ("Tortillas", "Bread", 90, 180, 90),
 ]
 
 
