@@ -3,6 +3,7 @@ import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-
 import Landing from './pages/Landing.jsx'
 import Onboarding from './pages/Onboarding.jsx'
 import Dashboard from './pages/Dashboard.jsx'
+import ShoppingList from './pages/ShoppingList.jsx'
 import AuthCallback from './pages/AuthCallback.jsx'
 import { useAuth } from './supabase'
 import './App.css'
@@ -18,6 +19,7 @@ function PageRoutes({ location }) {
       <Route path="/onboarding" element={<Onboarding />} />
       <Route path="/dashboard" element={session ? <Dashboard key={session.user.id} /> : <Navigate to="/" replace />} />
       <Route path="/auth/callback" element={<AuthCallback />} />
+      <Route path="/shoppinglist" element={<ShoppingList/>}/>
     </Routes>
   )
 }

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { supabase, useSession } from '../supabase'
+import { useNavigate } from 'react-router-dom'
 import { api } from '../api'
 import { CATEGORIES, freshness } from '../data/dashboardItems'
 import GroceryForm from './GroceryForm'
@@ -30,6 +31,11 @@ function Dashboard() {
   const [actionError, setActionError] = useState('')
   const editorRef = useRef(null)
   const { items, loading, error } = inventory
+  const navigate = useNavigate();
+
+  const handleShoppingListClick = () =>{
+    navigate('/shoppinglist')
+  };
 
   useEffect(() => {
     if (!owner) return
@@ -97,9 +103,12 @@ function Dashboard() {
           disabled={!['Dashboard', 'Add item'].includes(label)}
           onClick={() => label === 'Add item' ? setEditor({ item: null }) : window.scrollTo({ top: 0, behavior: 'smooth' })}>
           <span className="dash-nav-dot" />{label}
-          {!['Dashboard', 'Add item'].includes(label) && <span className="dash-nav-badge">Soon</span>}
+          {!['Dashboard', 'Add item', 'Shopping list'].includes(label) && <span className="dash-nav-badge">Soon</span>}
         </button>)}
       </nav>
+      <button type="button" className="dash-nav-item" onClick={handleShoppingListClick}>
+        Shopping List
+      </button>
       <button type="button" className="dash-nav-item" onClick={signOut}>
         <span className="dash-nav-dot" />Sign out
       </button>
