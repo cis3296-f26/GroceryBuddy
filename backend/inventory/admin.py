@@ -5,8 +5,8 @@ from .services.expiration import get_status  # our expiration engine
 
 @admin.register(GroceryItem)  # show GroceryItem in the admin
 class GroceryItemAdmin(admin.ModelAdmin):
-    list_display = ("name", "quantity", "category", "storage_location", "expiration_date", "use_by", "label", "user")  # columns to show
-    list_filter = ("category", "storage_location")  # filters on the side
+    list_display = ("name", "quantity", "unit", "category", "storage_location", "expiration_date", "use_by", "label", "status", "user")  # columns to show
+    list_filter = ("category", "storage_location", "status")  # filters on the side
     search_fields = ("name", "user__username")  # search by food or owner
 
     @admin.display(description="Use by")  # column title

@@ -24,6 +24,13 @@ STORAGE_CHOICES = [
     ("pantry", "Pantry"),
 ]
 
+# What happened to the food
+STATUS_CHOICES = [
+    ("available", "Available"),
+    ("used", "Used"),
+    ("tossed", "Tossed"),
+]
+
 
 class GroceryItem(models.Model):
     user = models.ForeignKey(
@@ -37,6 +44,8 @@ class GroceryItem(models.Model):
     purchase_date = models.DateField(default=date.today)  # day it was bought
     expiration_date = models.DateField(null=True, blank=True)  # package date (can be empty)
     storage_location = models.CharField(max_length=10, choices=STORAGE_CHOICES, default="fridge")  # fridge, freezer, or pantry
+    unit = models.CharField(max_length=20, blank=True, default="", db_default="")  # like "carton" or "lb" (can be empty)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default="available", db_default="available")  # available, used, or tossed
 
     class Meta:
         ordering = ["expiration_date"]  # soonest date shows first

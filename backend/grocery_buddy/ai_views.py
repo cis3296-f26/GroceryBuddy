@@ -27,7 +27,7 @@ class GenerationView(APIView):
         if request.data != {}:
             raise ValidationError("Send an empty JSON object; groceries come from your inventory.")
         items = list(GroceryItem.objects.filter(
-            user=request.user, quantity__gt=0,
+                        user=request.user, quantity__gt=0, status="available",
         ).order_by("id")[:101])
         if len(items) > 100:
             raise ValidationError("AI generation supports up to 100 active grocery items.")
