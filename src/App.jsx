@@ -6,10 +6,12 @@ import Dashboard from './pages/Dashboard.jsx'
 import ShoppingList from './pages/ShoppingList.jsx'
 import AuthCallback from './pages/AuthCallback.jsx'
 import PriorWastes from './pages/PriorWastes.jsx'
+import Recipes from './pages/Recipes.jsx'
 import { useAuth } from './supabase'
 import './App.css'
 
 const PAGE_ORDER = ['/', '/onboarding', '/dashboard']
+const SIDEBAR_PAGES = ['/dashboard', '/shoppinglist', '/recipes', '/priorwastes']
 const SLIDE_MS = 500
 
 function PageRoutes({ location }) {
@@ -22,6 +24,7 @@ function PageRoutes({ location }) {
       <Route path="/auth/callback" element={<AuthCallback />} />
       <Route path="/shoppinglist" element={<ShoppingList/>}/>
       <Route path="/priorwastes" element={session ? <PriorWastes /> : <Navigate to="/" replace />} />
+      <Route path="/recipes" element={session ? <Recipes /> : <Navigate to="/" replace />} />
     </Routes>
   )
 }
@@ -51,9 +54,15 @@ function App() {
         setCurrent(location)
         return
       }
+      // Every move between sidebar pages slides the same way (new page in from
+      // the right); otherwise fall back to the landing -> onboarding -> app order.
+      const bothInSidebar =
+        SIDEBAR_PAGES.includes(location.pathname) &&
+        SIDEBAR_PAGES.includes(current.pathname)
       const goingForward =
+        bothInSidebar ||
         PAGE_ORDER.indexOf(location.pathname) >
-        PAGE_ORDER.indexOf(current.pathname)
+          PAGE_ORDER.indexOf(current.pathname)
       setDirection(goingForward ? 'forward' : 'back')
       setPrevious(current)
       setCurrent(location)

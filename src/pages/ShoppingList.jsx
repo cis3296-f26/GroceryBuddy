@@ -1,603 +1,338 @@
-import React, {useMemo, useState} from "react";
-import "./ShoppingList.css";
-import '../App.css'
-import './Dashboard.css'
+import { useEffect, useState } from 'react'
+import { api } from '../api'
 import Sidebar from './Sidebar.jsx'
+import './ShoppingList.css'
 
-const initial_items = [
-    {
-        id:1,
-        name:"Strawberries",
-        category:"Produce",
-        quantity:"1",
-        emoji:"🍓",
-        price:"4.99",
-        checked:false,
+/*
+ * Flow: plan -> shop -> done.
+ *  1. Plan: type an item and press Enter (or let the assistant suggest items).
+ *  2. Shop: Shop mode hides the planning tools and enlarges rows; ticking an
+ *     item moves it into "In cart" so the remaining list always shrinks.
+ *  3. Done: when everything is in the cart, one tap clears it and exits.
+ */
 
-    },
-    {
-        id:2,
-        name:"Bananas",
-        category:"Produce",
-        quantity:"3",
-        emoji:"🍌",
-        price:2.49,
-        checked:true,
+const STORAGE_KEY = 'gb_shopping_list'
+const CATEGORIES = ['Produce', 'Dairy', 'Protein', 'Pantry', 'Frozen', 'Other']
+const CATEGORY_EMOJI = {
+  Produce: '🥬', Dairy: '🥛', Protein: '🍗', Pantry: '🥫', Frozen: '🧊', Other: '🛒',
+}
 
-    },
+// Inventory categories (from the backend) mapped onto shopping aisles.
+const AISLE_FOR = {
+  Fruit: 'Produce', Vegetable: 'Produce', Dairy: 'Dairy', Eggs: 'Dairy',
+  Protein: 'Protein', Meat: 'Protein', Seafood: 'Protein',
+  Grain: 'Pantry', Bread: 'Pantry', Pantry: 'Pantry', Beverage: 'Other',
+}
 
-    {
-        id:3,
-        name:"Milk",
-        category:"Dairy",
-        quantity:"2",
-        emoji:"🥛",
-        price:4.99,
-        checked:false,
-
-    }
+const KEYWORDS = [
+  ['Frozen', ['frozen', 'ice cream', 'popsicle']],
+  ['Produce', ['apple', 'banana', 'berry', 'strawberr', 'lettuce', 'spinach', 'tomato', 'onion', 'carrot', 'orange', 'lemon', 'avocado', 'potato', 'pepper', 'broccoli', 'grape', 'fruit', 'vegetable', 'garlic']],
+  ['Dairy', ['milk', 'cheese', 'yogurt', 'butter', 'cream', 'egg']],
+  ['Protein', ['chicken', 'beef', 'pork', 'turkey', 'fish', 'salmon', 'shrimp', 'tofu', 'bacon', 'sausage', 'steak']],
+  ['Pantry', ['rice', 'pasta', 'bread', 'flour', 'sugar', 'cereal', 'oil', 'sauce', 'bean', 'tortilla', 'oat', 'salt', 'spice', 'nut']],
 ]
 
-const categories = ["All Items", "Produce", "Dairy", "Pantry", "Frozen", "Other"];
+function guessCategory(name) {
+  const food = name.toLowerCase()
+  const match = KEYWORDS.find(([, words]) => words.some(word => food.includes(word)))
+  return match ? match[0] : 'Other'
+}
 
-const category_meta = {
-    Produce: {emoji: "🍎"},
-    Pantry: {emoji: "🍪"},
-    Frozen: {emoji: "🧊"},
-    Dairy: {emoji: "🥛"},
-    Other: {emoji: "🍱"}
-};
+function loadItems() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY))
+    return Array.isArray(saved) ? saved : []
+  } catch {
+    return []
+  }
+}
 
+function money(value) {
+  return `$${value.toFixed(2)}`
+}
 
-export default function ShoppingList(){
-    const[items, setItems] = useState(initial_items);
-    const[activeCategory, setActiveCategory] = useState("All Items");
-    const[showAllSuggestions, setShowAllSuggestions] = useState("All Items");
-    const[showSuggestionBanner, setShowSuggestionBanner] = useState(true);
-    const[showAddForm, setShowAddForm] = useState(false);
-    const[shoppingMode, setShoppingMode] = useState(false);
-    const[newItem, setNewItem] = useState({
-        name:"",
-        quantity: "1",
-        category: "Other",
-        price: "",
-    });
+export default function ShoppingList() {
+  const [items, setItems] = useState(loadItems)
+  const [shopMode, setShopMode] = useState(false)
+  const [draft, setDraft] = useState({ name: '', quantity: '1', category: 'Auto', price: '' })
+  const [notice, setNotice] = useState('')
+  const [suggestions, setSuggestions] = useState(null)
+  const [suggesting, setSuggesting] = useState(false)
+  const [suggestError, setSuggestError] = useState('')
 
-    const checkedCount = items.filter((item) => item.checked).length;
-    const totalCount = items.length;
-
-    const progress = totalCount
-    ? Math.round((checkedCount / totalCount) * 100)
-    : 0;
-
-    const estimatedTotal = items.reduce(
-        (sum, item) => sum + (Number(item.price) || 0),
-        0
-    );
-
-    const checkedTotal = items.reduce(
-        (sum, item) =>
-            item.checked ? sum + (Number(item.price) || 0) : sum,
-        0
-    )
-;
-    const visibleItems = useMemo(() => {
-        let filteredItems = activeCategory === "All Items"
-        ? items: items.filter((item) => item.category === activeCategory);
-
-        if(shoppingMode){
-            filteredItems = filteredItems.filter((item) => !item.checked);
-        }
-        return filteredItems;
-    }, [items, activeCategory, shoppingMode]);
-
-    const groupedItems = categories.slice(1)
-        .map((category) => ({
-        category,
-        items: visibleItems.filter((item) => item.category === category),
-    }))
-    .filter((group) => group.items.length > 0);
-
-    const handleGenerateList = () => {
-        alert("Your shopping list will be generated")
-    };
-
-    function toggleItem(id){
-        setItems((current) =>
-        current.map((item) =>
-        item.id === id
-    ? {...item, checked: !item.checked}
-        :item));
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(items))
+    } catch {
+      // Storage can be blocked; the list still works for this visit.
     }
+  }, [items])
 
-    function addItem(item) {
-        const cleanName = item.name.trim();
+  const toBuy = items.filter(item => !item.checked)
+  const inCart = items.filter(item => item.checked)
+  const progress = items.length ? Math.round((inCart.length / items.length) * 100) : 0
+  const total = items.reduce((sum, item) => sum + item.price, 0)
+  const cartTotal = inCart.reduce((sum, item) => sum + item.price, 0)
 
-        if(!cleanName) return;
+  const groups = CATEGORIES
+    .map(category => ({ category, rows: toBuy.filter(item => item.category === category) }))
+    .filter(group => group.rows.length > 0)
 
-        setItems((current) => [
-            ...current,
-            {
-                id: `${Date.now()}-${Math.random()}`,
-                name: cleanName,
-                category: item.category || guessCategory(cleanName),
-                quantity: item.quantity || "1",
-                emoji: item.emoji || getEmoji(cleanName),
-                price: Number(item.price) || 0,
-                checked: false,
-            },
-        ]);
+  function addItem({ name, quantity, category, price }) {
+    const clean = name.trim()
+    if (!clean) return false
+    if (items.some(item => item.name.toLowerCase() === clean.toLowerCase() && !item.checked)) {
+      setNotice(`${clean} is already on your list.`)
+      return false
     }
+    setItems(current => [...current, {
+      id: crypto.randomUUID(),
+      name: clean,
+      quantity: String(quantity || '1').trim() || '1',
+      category: category && category !== 'Auto' ? category : guessCategory(clean),
+      price: Number(price) || 0,
+      checked: false,
+    }])
+    setNotice('')
+    return true
+  }
 
-    function handleAddSubmit(event){
-        event.preventDefault();
+  function handleAdd(event) {
+    event.preventDefault()
+    if (addItem(draft)) setDraft({ name: '', quantity: '1', category: draft.category, price: '' })
+  }
 
-        if(!newItem.name.trim()) return;
+  function toggle(id) {
+    setItems(current => current.map(item => item.id === id ? { ...item, checked: !item.checked } : item))
+  }
 
-        addItem({
-            name: newItem.name,
-            quantity: newItem.quantity || "1",
-            category:
-            newItem.category === "Auto-detect"
-            ? guessCategory(newItem.name)
-            :newItem.category,
-            price: newItem.price,
-        });
+  function remove(id) {
+    setItems(current => current.filter(item => item.id !== id))
+  }
 
-        setNewItem({
-            name: "",
-            quantity: "1",
-            category: "Other",
-            price: "",
-        });
-        setShowAddForm(false);
+  function clearCart() {
+    setItems(current => current.filter(item => !item.checked))
+  }
+
+  function clearAll() {
+    if (items.length && window.confirm('Clear your whole shopping list?')) setItems([])
+  }
+
+  function finishTrip() {
+    clearCart()
+    setShopMode(false)
+  }
+
+  async function suggest() {
+    setSuggesting(true)
+    setSuggestError('')
+    try {
+      const data = await api('shopping/generate/', { method: 'POST', body: {} })
+      const onList = new Set(items.map(item => item.name.toLowerCase()))
+      const fresh = (data.items || []).filter(item => !onList.has(item.name.toLowerCase()))
+      setSuggestions(fresh)
+    } catch (err) {
+      setSuggestError(err.status === 429
+        ? 'Slow down a little: try again in a moment.'
+        : err.message || 'Could not get suggestions. Please try again.')
+    } finally {
+      setSuggesting(false)
     }
-const suggestions = [
-            {
-                name: "Bread",
-                category: "Pantry",
-                quantity: "1 loaf",
-                emoji: "🍞",
-                price: 3.49,
-            },
+  }
 
-            {
-                name: "Apples",
-                category: "Produce",
-                quantity: "4", 
-                emoji: "🍎",
-                price: 3.99,
-            },
-        ];
+  function addSuggestion(suggestion) {
+    addItem({
+      name: suggestion.name,
+      quantity: suggestion.quantity,
+      category: AISLE_FOR[suggestion.category] || 'Other',
+    })
+    setSuggestions(current => current.filter(item => item.name !== suggestion.name))
+  }
 
-    function addSuggestedItems(){
-suggestions.forEach((suggestion) => {
-    const exists = items.some(
-        (item) => 
-            item.name.toLowerCase() ===
-        suggestion.name.toLowerCase()
-    );
+  function addAllSuggestions() {
+    suggestions.forEach(addSuggestion)
+  }
 
-    if(!exists){
-        addItem(suggestion);
-    }
-        });
-    }
+  return (
+    <div className="dash-shell">
+      <Sidebar />
+      <main className={`shopping-page${shopMode ? ' shopping-page--shop' : ''}`}>
+        <header className="sl-heading">
+          <div>
+            <h1>{shopMode ? 'Shopping now' : 'Shopping list'}</h1>
+            <p>
+              {shopMode
+                ? 'Tick things off as they go in your cart.'
+                : 'Plan your trip, then switch to Shop mode at the store.'}
+            </p>
+          </div>
+          <button
+            type="button"
+            className={shopMode ? 'sl-btn sl-btn--ghost' : 'sl-btn'}
+            onClick={() => setShopMode(value => !value)}
+            disabled={!items.length && !shopMode}
+          >
+            {shopMode ? 'Back to planning' : '🛒 Start shopping'}
+          </button>
+        </header>
 
-    function guessCategory(name){
-        const food = name.toLowerCase();
-
-        if(["apple", "banana", "strawberry", "lettuce", "spinach"].some(item => food.includes(item))){
-            return "Produce";
-        }
-
-        if(["milk", "cheese", "yogurt", "butter"].some(item => food.includes(item))){
-            return "Dairy";
-        }
-
-        if(["frozen pizza", "frozen berries", "ice cream"].some(item => food.includes(item))){
-            return "Frozen";
-        }
-
-        return "Pantry";
-    }
-
-    function getEmoji(name){
-        const food = name.toLowerCase();
-
-        if(food.includes("strawberr")) return "🍓";
-        if(food.includes("banana")) return "🍌";
-        if(food.includes("oranges")) return "🍊"
-
-        return "🛒";
-    }
-
-    function clearCategory(category){
-        setItems((current) =>
-        current.filter((item) => item.category !== category)
-    );
-    }
-
-    function clearCompleted(){
-        setItems((current) =>
-        current.filter((item) => !item.checked));
-    }
-
-    function clearList(){
-        setItems([]);
-    }
-
-
-    return (
-        <div className="dash-shell">
-                <Sidebar />
-        <main className={`shopping-page ${shoppingMode ? "shopping-page--mode" : ""}`}>
-            
-            <div className="shopping-heading">
-    <div className="heading-content">
-        <h1>Shopping List</h1>
-        <p>
-            Everything you need for your next grocery trip.
-        </p>
-    </div>
-    
-        <div className="heading-actions">
-    <button type="button"
-    className="generate-button"
-    onClick={handleGenerateList}>✨ Generate List</button>
-
-    <button
-        className="primary-button add-list-button"
-        onClick={() => setShowAddForm(true)}
-    >
-        <span aria-hidden="true">🛒</span> Add to List
-    </button>
-    </div>
-</div>
-        
-
-            <div className="shopping-content-grid">
-                <section className="list-column">
-                    <nav
-                    className="category-tabs"
-                    aria-label="Filter shopping list"
-                    >
-                        {categories.map((category) => (
-                            <button
-                            key={category}
-                            className={`category-tab ${
-                                activeCategory === category
-                                ? "category-tab--active"
-                                :""
-                            }`}
-                            onClick={() => setActiveCategory(category)}
-                            >
-                                {category}
-                            </button>
-                        ))}
-                    </nav>
-
-                    {groupedItems.length ? (
-                        groupedItems.map(({ category, items: categoryItems} ) => (
-                            <section className="category-section"
-                            key={category}
-                            >
-                            <header className="category-section-heading">
-                                <h2>
-                                    <span>{category_meta[category].emoji}</span>
-                                    {category}
-                                    <span className="item-count">
-                                        ({categoryItems.length})
-                                    </span>
-                                </h2>
-
-                                <button onClick={() => clearCategory(category)}>
-                                    Clear section
-                                </button>
-                            </header>
-
-                            <div className="category-items">
-                                {categoryItems.map((item) => (
-                                    <div className={`grocery-row ${
-                                        item.checked ? "grocery-row--checked" : ""
-                                    }`}
-                                    key={item.id}
-                                    >
-                                        <label className="item-checkbox">
-                                            <input
-                                            type="checkbox"
-                                            checked={item.checked}
-                                            onChange={() => toggleItem(item.id)}
-                                            />
-
-                                            <span className="custom-checkbox"
-                                            aria-hidden="true">{item.checked ? "✓" : ""}</span>
-                                        </label>
-
-                                        <span className="grocery-emoji"
-                                        aria-hidden="true">{item.emoji}</span>
-                                        <span className="grocery-name">{item.name}</span>
-                                        <span className="grocery-quantity">
-                                            {item.quantity}
-                                        </span>
-
-                                        <button
-                                        className="remove-item"
-                                        aria-label={`Remove ${item.name}`}
-                                        onClick={() =>
-                                            setItems((current) =>
-                                            current.filter(
-                                                (entry) => entry.id !== item.id
-                                            ))
-                                        }
-                                        >x</button>
-                                    </div>
-                                ))}
-                            </div>
-                            </section>
-                        ))) : (
-                            <div className="empty-list">
-                                <span>🥄</span>
-
-                                <strong>
-                                    {activeCategory === "All Items"
-                                    ? "Your list is empty"
-                                    : `No ${activeCategory.toLowerCase()} items yet`}
-                                </strong>
-
-                                <p>
-                                    Add a grocery item to get your list started.
-                                </p>
-
-                                <button className="primary-button"
-                                onClick={() => setShowAddForm(true)}
-                                >
-                                    Add an item
-                                </button>
-                            </div>
-                        )}
-                </section>
-
-                <aside className="shopping-sidebar">
-                    <section className="progress-card">
-                        <h2>
-                            <span>🛒</span> Shopping Progress
-                        </h2>
-
-                        <div className="progress-summary">
-                            <div>
-                                <strong>{totalCount} items</strong>
-                                <span>{checkedCount} / {totalCount} checked off</span>
-                            </div>
-
-                            <div className="progress-ring"
-                            style={{ "--progress": `${progress}%` }}
-                            >
-                                <div>{progress}%</div>
-                            </div>
-                        </div>
-
-                        <div className="progress-divider"/>
-
-
-                       {shoppingMode ? (
-                        <div className="shopping-totals">
-                            <div>
-                                <span className="estimated-label">Check Items</span>
-                                <strong>${checkedTotal.toFixed(2)}</strong>
-                            </div>
-
-                            <span className="totals-divider"></span>
-
-                            <div>
-                                <span className="estimated-label">Estimated Total</span>
-                                <strong className="estimated-total">
-                                    ${estimatedTotal.toFixed(2)}
-                                </strong>
-                            </div>
-                        </div>
-                       ) : (
-                        <>
-                        <span className="estimated-label">Estimated Total</span>
-                        <strong className="estimated-total">
-                            ${estimatedTotal.toFixed(2)}
-                        </strong>
-                        </>
-                       )
-                    }
-                    </section>
-
-                    <section className="quick-actions-card">
-                        <h2>Quick Actions</h2>
-
-                        <button className={`primary-button quick-action-main ${
-                            shoppingMode ? "quick-action-main--active" : ""
-                            }`}
-                            onClick={() =>
-                            setShoppingMode((value) => !value)
-                        } >
-                            🛒{" "}
-                            {shoppingMode
-                            ? "Exit Shopping Mode"
-                        : "Shop Now"}
-                            </button>      
-
-                            <button className="outline-button" onClick={clearCompleted}>
-                                <span>Clear Completed</span>
-                            </button>
-
-                            <button
-                            className="outline-button"
-                            onClick={clearList}
-                            >
-                                <span>Clear List</span>
-                            </button>
-
-                            {shoppingMode && (
-                                <p className="shopping-mode-note">
-                                    Shopping mode is on. Check off each item as you shop!
-                                    Items will clear automatically in this mode.
-                                </p>
-                            )}
-                    </section>
-
-                    <section
-    className={`suggestion-banner ${
-        showSuggestionBanner ? "" : "suggestion-banner--hidden"
-    }`}
-    aria-hidden={!showSuggestionBanner}
->
-    <div className="suggestion-icon">🛒</div>
-
-    <div className="suggestion-content">
-        <div className="suggestion-heading">
-            <div>
-                <strong>Running low?</strong>
-                <p>Keep your kitchen stocked with these essentials.</p>
+        {items.length > 0 && (
+          <section className="sl-progress" aria-label="Shopping progress">
+            <div className="sl-progress-top">
+              <strong>{inCart.length} of {items.length} in cart</strong>
+              {total > 0 && <span>{money(cartTotal)} of about {money(total)}</span>}
             </div>
-        </div>
-
-        <div className="suggestion-items">
-            {suggestions.map((item) => (
-                <div className="suggestion-item" key={item.name}>
-                    <span className="suggestion-emoji">{item.emoji}</span>
-                    <span>{item.name}</span>
-                    </div>
-            ))}
-        </div>
-
-        <button className="primary-button suggestion-add"
-        onClick={addSuggestedItems}>+ Add suggested items</button>
-    </div>
-
-    <button
-    className="banner-close"
-    aria-label="Hide suggestions"
-    onClick={() => setShowSuggestionBanner(false)}>x</button>
-    {/* write */}
-</section>
-                </aside>
+            <div className="sl-bar" role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100}>
+              <span style={{ width: `${progress}%` }} />
             </div>
+          </section>
+        )}
 
-            {showAddForm && (
-                <div
-                className="modal-backdrop"
-                onMouseDown={(event) => {
-                if (event.target === event.currentTarget) {
-                setShowAddForm(false);
-            }
-                }}
-                >
-                    <form
-                    className="add-item-modal"
-                    onSubmit={handleAddSubmit}
-                    >
-                        <button 
-                        type="button"
-                        className="modal-close"
-                        aria-label="Close"
-                        onClick={() => setShowAddForm(false)}
-                        >x</button>
+        {!shopMode && (
+          <>
+            <form className="sl-add" onSubmit={handleAdd}>
+              <input
+                className="sl-add-name"
+                value={draft.name}
+                onChange={event => setDraft({ ...draft, name: event.target.value })}
+                placeholder="Add an item, e.g. Strawberries"
+                aria-label="Item name"
+                autoComplete="off"
+              />
+              <input
+                className="sl-add-qty"
+                value={draft.quantity}
+                onChange={event => setDraft({ ...draft, quantity: event.target.value })}
+                placeholder="Qty"
+                aria-label="Quantity"
+              />
+              <select
+                value={draft.category}
+                onChange={event => setDraft({ ...draft, category: event.target.value })}
+                aria-label="Aisle"
+              >
+                <option value="Auto">Auto aisle</option>
+                {CATEGORIES.map(category => <option key={category}>{category}</option>)}
+              </select>
+              <input
+                className="sl-add-price"
+                type="number"
+                min="0"
+                step="0.01"
+                value={draft.price}
+                onChange={event => setDraft({ ...draft, price: event.target.value })}
+                placeholder="$ (optional)"
+                aria-label="Estimated price"
+              />
+              <button type="submit" className="sl-btn" disabled={!draft.name.trim()}>Add</button>
+            </form>
+            {notice && <p className="sl-notice" role="status">{notice}</p>}
 
-                        <span className="modal-kicker">
-                            GROCERYBUDDY
-                        </span>
-
-                        <h2>Add to your list</h2>
-
-                        <p>What do you need from the store?</p>
-
-                        <label>
-                            Item className
-                            <input
-                            autoFocus
-                            value={newItem.name}
-                            onChange={(event) =>
-                                setNewItem({
-                                    ...newItem,
-                                    name: event.target.value,
-                                })
-                            }
-                            placeholder="e.g Strawberries"
-                            required
-                        />
-                        </label>
-
-                        <div className="modal-fields-row">
-                            <label>
-                                Quantity
-                                <input
-                                value={newItem.quantity}
-                            onChange={(event) =>
-                                setNewItem({
-                                ...newItem,
-                                quantity: event.target.value,
-                                })
-                                    }
-                                placeholder="1 pack"
-                                    />
-                            </label>
-                            
-                            <label>Category
-
-                                <select
-                                value={newItem.category}
-                                onChange={(event) =>
-                                setNewItem({
-                                ...newItem,
-                                category: event.target.value,
-                                    })
-                                    }
-                                >
-                            {categories.slice(1).map((category) => (
-                            <option key={category}>
-                                {category}
-                                </option>
-                                ))}
-
-                            <option value="Auto-detect">
-                                Auto-detect
-                            </option>
-                            </select>
-                            </label>
-                        </div>
-
-                        <label>
-                            Estimated price {" "}
-                            <span className="optional-label">
-                                (optional)
-                            </span>
-
-                            <input
-                                type="number"
-                                min="0"
-                                step="0.01"
-                                value={newItem.price}
-                                onChange={(event) =>
-                            setNewItem({
-                            ...newItem,
-                                price: event.target.value,
-                                })
-                            }
-                            placeholder="0.00"
-                        />
-                        </label>
-
-                        <div className="modal-actions">
-                            <button
-                            type="button"
-                            className="outline-button"
-                            onClick={() => setShowAddForm(false)}>
-                                Cancel
-                            </button>
-                            <button
-                            type="submit"
-                            className="primary-button">+ Add Item</button>
-                        </div>
-                    </form>
+            <section className="sl-suggest" aria-label="Suggested items">
+              <div className="sl-suggest-head">
+                <div>
+                  <h2>Running low?</h2>
+                  <p>Get ideas for what to restock based on your fridge.</p>
                 </div>
-            )}
-        </main>
-        </div>
-    );
+                <button type="button" className="sl-btn sl-btn--ghost" onClick={suggest} disabled={suggesting}>
+                  {suggesting ? 'Thinking…' : suggestions ? 'Refresh ideas' : '✨ Suggest items'}
+                </button>
+              </div>
+              {suggestError && <p role="alert" className="sl-error">{suggestError}</p>}
+              {suggestions && suggestions.length === 0 && (
+                <p className="sl-muted">Nothing new to suggest right now. Your list looks well stocked.</p>
+              )}
+              {suggestions && suggestions.length > 0 && (
+                <>
+                  <ul className="sl-suggest-list">
+                    {suggestions.map(suggestion => (
+                      <li key={suggestion.name}>
+                        <div>
+                          <strong>{suggestion.name}</strong>
+                          <span>{suggestion.reason}</span>
+                        </div>
+                        <button type="button" onClick={() => addSuggestion(suggestion)} aria-label={`Add ${suggestion.name}`}>
+                          + Add
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                  <button type="button" className="sl-link" onClick={addAllSuggestions}>Add all</button>
+                </>
+              )}
+            </section>
+          </>
+        )}
+
+        {items.length === 0 && (
+          <div className="sl-empty">
+            <span aria-hidden="true">🧺</span>
+            <h2>Your list is empty</h2>
+            <p>Type an item above, or tap “Suggest items” to get started.</p>
+          </div>
+        )}
+
+        {groups.map(({ category, rows }) => (
+          <section className="sl-group" key={category} aria-label={category}>
+            <h2>
+              <span aria-hidden="true">{CATEGORY_EMOJI[category]}</span>
+              {category}
+              <em>{rows.length}</em>
+            </h2>
+            <ul>
+              {rows.map(item => (
+                <li className="sl-row" key={item.id}>
+                  <label>
+                    <input type="checkbox" checked={item.checked} onChange={() => toggle(item.id)} />
+                    <span className="sl-check" aria-hidden="true" />
+                    <span className="sl-name">{item.name}</span>
+                  </label>
+                  <span className="sl-qty">{item.quantity}</span>
+                  {item.price > 0 && <span className="sl-price">{money(item.price)}</span>}
+                  {!shopMode && (
+                    <button type="button" className="sl-remove" aria-label={`Remove ${item.name}`} onClick={() => remove(item.id)}>×</button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))}
+
+        {items.length > 0 && toBuy.length === 0 && (
+          <div className="sl-done">
+            <span aria-hidden="true">🎉</span>
+            <h2>Everything is in your cart</h2>
+            <button type="button" className="sl-btn" onClick={finishTrip}>Finish trip &amp; clear cart</button>
+          </div>
+        )}
+
+        {inCart.length > 0 && (
+          <section className="sl-group sl-cart" aria-label="In cart">
+            <h2>
+              <span aria-hidden="true">✅</span>
+              In cart
+              <em>{inCart.length}</em>
+              <button type="button" className="sl-link" onClick={clearCart}>Clear cart</button>
+            </h2>
+            <ul>
+              {inCart.map(item => (
+                <li className="sl-row sl-row--done" key={item.id}>
+                  <label>
+                    <input type="checkbox" checked={item.checked} onChange={() => toggle(item.id)} />
+                    <span className="sl-check" aria-hidden="true" />
+                    <span className="sl-name">{item.name}</span>
+                  </label>
+                  <span className="sl-qty">{item.quantity}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {!shopMode && items.length > 0 && (
+          <button type="button" className="sl-link sl-clear-all" onClick={clearAll}>Clear whole list</button>
+        )}
+      </main>
+    </div>
+  )
 }

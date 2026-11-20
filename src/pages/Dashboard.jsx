@@ -1,14 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { supabase, useSession } from '../supabase'
-import { useNavigate } from 'react-router-dom'
 import { api } from '../api'
 import { CATEGORIES, freshness } from '../data/dashboardItems'
 import GroceryForm from './GroceryForm'
+import Sidebar from './Sidebar'
 import '../App.css'
 import './Dashboard.css'
-
-const NAV_ITEMS = ['Dashboard', 'Add item', 'Shopping list', 'Recipe ideas', 'Prior Wastes', 'Settings']
 
 function greeting() {
   const hour = new Date().getHours()
@@ -26,12 +24,11 @@ function Dashboard() {
   const [inventory, setInventory] = useState({ items: [], loading: true, error: '' })
   const [reload, setReload] = useState(0)
   const [query, setQuery] = useState('')
-  const [editor, setEditor] = useState(null)
+  const [editor, setEditor] = useState(state?.openEditor ? { item: null } : null)
   const [busyId, setBusyId] = useState(null)
   const [actionError, setActionError] = useState('')
   const editorRef = useRef(null)
   const { items, loading, error } = inventory
-  const navigate = useNavigate();
 
 
   useEffect(() => {
@@ -88,39 +85,7 @@ function Dashboard() {
   const todayCount = available.filter(item => freshness(item) === 'useToday').length
 
   return <div className="dash-shell">
-    <aside className="dash-sidebar">
-      <a className="brand" href="/" aria-label="GroceryBuddy home">
-        <img className="brand-mark" src="/logo.svg" alt="" />
-        grocerybuddy<span className="brand-dot">.</span>
-      </a>
-      <nav className="dash-nav" aria-label="Dashboard">
-        {NAV_ITEMS.map(label => <button type="button" key={label}
-          className={`dash-nav-item${(label === 'Dashboard' && window.location.pathname === '/dashboard') ||
-            (label === 'Prior Wastes' && window.location.pathname === '/priorwastes') ||
-            (label === 'Shopping list' && window.location.pathname === '/shoppinglist') ? ' active' : ''}`}
-          aria-current={window.location.pathname === '/dashboard' && label === 'Dashboard' || 
-            window.location.pathname === '/priorwastes' && label === 'Prior Wastes' ||
-            window.location.pathname === '/shoppinglist' && label === 'Shopping list'
-            ? 'page'
-            :undefined
-          }
-          // disabled={!['Dashboard', 'Add item'].includes(label)}
-          onClick={() => {
-            if(label === 'Dashboard') navigate('/dashboard');
-            else if(label === 'Shopping list') navigate('/shoppinglist');
-            else if(label === 'Prior Wastes') navigate('/priorwastes');
-            else if (label === 'Add item') setEditor({item: null});
-          }}>
-          <span className="dash-nav-dot" />{label}
-          {!['Dashboard', 'Add item', 'Shopping list', 'Prior Wastes'].includes(label) && <span className="dash-nav-badge">Soon</span>}
-        </button>)}
-      </nav>
-      
-      <button type="button" className="dash-nav-item" onClick={signOut}>
-        <span className="dash-nav-dot" />Sign out
-      </button>
-      <div className="dash-tip"><strong>Tip</strong><p>Used and Tossed remove an item from your inventory.</p></div>
-    </aside>
+    <Sidebar setEditor={setEditor} signOut={signOut} addActive={Boolean(editor && !editor.item)} />
 
     <main className="dash-main">
       <div className="dash-top">
@@ -137,8 +102,10 @@ function Dashboard() {
       {loading && <p role="status">Loading groceries…</p>}
       {error && <p role="alert">{error} <button type="button" onClick={retry}>Retry</button></p>}
       {actionError && <p role="alert">{actionError}</p>}
-      <div ref={editorRef}>
-        {editor && <GroceryForm key={editor.item?.id || 'new'} item={editor.item} onSave={save} onCancel={() => setEditor(null)} />}
+      <div ref={editorRef} className="dash-editor-slot">
+        {editor && <div className="dash-editor-slide" key={editor.item?.id || 'new'}>
+          <GroceryForm item={editor.item} onSave={save} onCancel={() => setEditor(null)} />
+        </div>}
       </div>
       {!loading && !error && available.length === 0 && <p role="status">Your inventory is empty. Add your first grocery item.</p>}
       {!loading && !error && available.length > 0 && visible.length === 0 && <p role="status">No groceries match your search.</p>}
@@ -169,10 +136,6 @@ function Dashboard() {
           </section>
         })}
       </div>
-      <section className="dash-banner">
-        <div><h2>Hungry? Cook what expires first.</h2><p>Recipe ideas based on your groceries are coming soon.</p></div>
-        <div className="dash-banner-side"><span className="dash-soon">Coming soon</span><span className="dash-banner-art" aria-hidden="true">🥛 🥬 🥚</span></div>
-      </section>
     </main>
   </div>
 }
