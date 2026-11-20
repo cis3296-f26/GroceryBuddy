@@ -140,7 +140,7 @@
 
 .suggestion-content{
     flex: 0 1 auto;
-    min-width: 0'
+    min-width: 0;
 }
 
 .suggestion-heading strong {
