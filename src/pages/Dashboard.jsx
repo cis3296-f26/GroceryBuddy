@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { supabase, useSession } from '../supabase'
+import { useNavigate } from 'react-router-dom'
 import { api } from '../api'
 import { CATEGORIES, freshness } from '../data/dashboardItems'
 import GroceryForm from './GroceryForm'
 import '../App.css'
 import './Dashboard.css'
 
-const NAV_ITEMS = ['Dashboard', 'Add item', 'Shopping list', 'Recipe ideas', 'Settings']
+const NAV_ITEMS = ['Dashboard', 'Add item', 'Shopping list', 'Recipe ideas', 'Prior Wastes', 'Settings']
 
 function greeting() {
   const hour = new Date().getHours()
@@ -30,6 +31,8 @@ function Dashboard() {
   const [actionError, setActionError] = useState('')
   const editorRef = useRef(null)
   const { items, loading, error } = inventory
+  const navigate = useNavigate();
+
 
   useEffect(() => {
     if (!owner) return
@@ -92,14 +95,27 @@ function Dashboard() {
       </a>
       <nav className="dash-nav" aria-label="Dashboard">
         {NAV_ITEMS.map(label => <button type="button" key={label}
-          className={`dash-nav-item${label === 'Dashboard' ? ' active' : ''}`}
-          aria-current={label === 'Dashboard' ? 'page' : undefined}
-          disabled={!['Dashboard', 'Add item'].includes(label)}
-          onClick={() => label === 'Add item' ? setEditor({ item: null }) : window.scrollTo({ top: 0, behavior: 'smooth' })}>
+          className={`dash-nav-item${(label === 'Dashboard' && window.location.pathname === '/dashboard') ||
+            (label === 'Prior Wastes' && window.location.pathname === '/priorwastes') ||
+            (label === 'Shopping list' && window.location.pathname === '/shoppinglist') ? ' active' : ''}`}
+          aria-current={window.location.pathname === '/dashboard' && label === 'Dashboard' || 
+            window.location.pathname === '/priorwastes' && label === 'Prior Wastes' ||
+            window.location.pathname === '/shoppinglist' && label === 'Shopping list'
+            ? 'page'
+            :undefined
+          }
+          // disabled={!['Dashboard', 'Add item'].includes(label)}
+          onClick={() => {
+            if(label === 'Dashboard') navigate('/dashboard');
+            else if(label === 'Shopping list') navigate('/shoppinglist');
+            else if(label === 'Prior Wastes') navigate('/priorwastes');
+            else if (label === 'Add item') setEditor({item: null});
+          }}>
           <span className="dash-nav-dot" />{label}
-          {!['Dashboard', 'Add item'].includes(label) && <span className="dash-nav-badge">Soon</span>}
+          {!['Dashboard', 'Add item', 'Shopping list', 'Prior Wastes'].includes(label) && <span className="dash-nav-badge">Soon</span>}
         </button>)}
       </nav>
+      
       <button type="button" className="dash-nav-item" onClick={signOut}>
         <span className="dash-nav-dot" />Sign out
       </button>
