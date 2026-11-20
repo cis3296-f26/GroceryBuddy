@@ -1,258 +1,189 @@
-import React, { useState } from 'react';
-import "./PriorWastes.css";
-import Sidebar from "./Sidebar.jsx";
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import Sidebar from './Sidebar.jsx'
+import './PriorWastes.css'
 
-const foodStats = {
-    wasted: "4.2 lbs",
-    consumed: "38 lbs",
-    purchased: 52,
-    wasteCost: "18.50",
-};
+/*
+ * Flow: answer "how am I doing?" first, then "why?", then "what do I do?".
+ *   1. Headline: pounds wasted, share of food, cost, and the trend.
+ *   2. Why: where the waste comes from, and what gets bought.
+ *   3. Act: shortcuts to cook what expires first and to plan a smarter list.
+ *
+ * The numbers below are sample data; used/tossed history is not recorded yet.
+ */
 
-const foodBreakdown = [
-{name: "Consumed" , value: 82, color: "#4F936B"},
-{name: "Wasted", value: 18, color: "#D9A16A"},
-];
+const PERIODS = [
+  { key: 'week', label: 'Week', phrase: 'this week' },
+  { key: 'month', label: 'Month', phrase: 'this month' },
+  { key: 'quarter', label: '3 months', phrase: 'in the last 3 months' },
+  { key: 'year', label: 'Year', phrase: 'this year' },
+]
 
-const wasteCategories = [
-    { name: "Produce", value: 55, color: "#4F936B"},
-    { name: "Dairy", value: 25, color: "#A8C98C"},
-    { name: "Pantry", value: 12, color: "#E6C77A"},
-    { name: "Other", value: 8, color: "#D9A16A"},
-];
-
-const purchaseCategories = [
-    { name: "Produce", value: 40, color: "#4F936B"},
-    { name: "Dairy", value: 30, color: "#A8C98C"},
-    { name: "Pantry", value: 20, color: "#E6C77A"},
-    { name: "Frozen", value: 10, color: "#8BB8C5"},
-
-
-];
-
-const frequentFoods = [
-        { name: "Bananas", purchases: 12 },
-        { name: "Milk", purchases: 9},
-        { name: "Strawberries", purchases: 7},
-        { name: "Bread", purchases: 6},
-        { name: "Egges", purchases: 5},
-
-];
-
-
-function DonutChart({data, centerValue, centerLabel}) {
-    let currentPercentage = 0;
-
-    const gradient = data.map((item) => {
-        const start = currentPercentage;
-        currentPercentage += item.value;
-
-        return `${item.color} ${start}% ${currentPercentage}%`;
-    }).join (", ");
-
-    return (
-        <div className="donut-wrapper">
-            <div
-            className="donut-chart"
-            style={{ background: `conic-gradient(${gradient})` }}
-            role="img"
-            aria-label={data.map(
-                (item) => `${item.name} : ${item.value}%`
-            ).join(", ")}
-            >
-                <div className="donut-center">
-                    <strong>{centerValue}</strong>
-                    <span>{centerLabel}</span>
-                </div>
-            </div>
-        </div>
-    );
+const DATA = {
+  week: {
+    wasted: 1.1, eaten: 9.4, purchased: 14, cost: 4.6, change: -8,
+    waste: [['Produce', 52], ['Dairy', 28], ['Pantry', 12], ['Other', 8]],
+    bought: [['Produce', 42], ['Dairy', 28], ['Pantry', 20], ['Frozen', 10]],
+    frequent: [['Bananas', 3], ['Milk', 2], ['Strawberries', 2], ['Bread', 1], ['Eggs', 1]],
+  },
+  month: {
+    wasted: 4.2, eaten: 38, purchased: 52, cost: 18.5, change: -12,
+    waste: [['Produce', 55], ['Dairy', 25], ['Pantry', 12], ['Other', 8]],
+    bought: [['Produce', 40], ['Dairy', 30], ['Pantry', 20], ['Frozen', 10]],
+    frequent: [['Bananas', 12], ['Milk', 9], ['Strawberries', 7], ['Bread', 6], ['Eggs', 5]],
+  },
+  quarter: {
+    wasted: 13.8, eaten: 112, purchased: 160, cost: 61.2, change: -5,
+    waste: [['Produce', 58], ['Dairy', 22], ['Pantry', 12], ['Other', 8]],
+    bought: [['Produce', 41], ['Dairy', 29], ['Pantry', 21], ['Frozen', 9]],
+    frequent: [['Bananas', 34], ['Milk', 27], ['Strawberries', 19], ['Bread', 18], ['Eggs', 15]],
+  },
+  year: {
+    wasted: 52, eaten: 430, purchased: 640, cost: 232, change: 3,
+    waste: [['Produce', 57], ['Dairy', 23], ['Pantry', 13], ['Other', 7]],
+    bought: [['Produce', 40], ['Dairy', 30], ['Pantry', 21], ['Frozen', 9]],
+    frequent: [['Bananas', 131], ['Milk', 104], ['Strawberries', 77], ['Bread', 70], ['Eggs', 61]],
+  },
 }
 
-function ChartLegend({ data }){
-    return (
-        <div className="chart-legend">
-            {data.map((item) => (
-                <div className="legend-item" key={item.name}>
-                    <span
-                    className="legend-dot"
-                    style={{ background: item.color }} />
-                    <span>{item.name}</span>
-                    <strong>{item.value}</strong>
-                    </div>
+const COLORS = ['#4f936b', '#a8c98c', '#e6c77a', '#d9a16a']
+
+function Bars({ rows, unit = '%' }) {
+  const max = Math.max(...rows.map(([, value]) => value))
+  return (
+    <ul className="pw-bars">
+      {rows.map(([name, value], index) => (
+        <li key={name}>
+          <span className="pw-bar-name">{name}</span>
+          <span className="pw-bar-track">
+            <span style={{ width: `${(value / max) * 100}%`, background: COLORS[index % COLORS.length] }} />
+          </span>
+          <strong>{value}{unit}</strong>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+export default function PriorWastes() {
+  const navigate = useNavigate()
+  const [period, setPeriod] = useState('month')
+  const info = PERIODS.find(item => item.key === period)
+  const data = DATA[period]
+
+  const total = data.wasted + data.eaten
+  const wastedShare = Math.round((data.wasted / total) * 100)
+  const better = data.change <= 0
+  const topWaste = data.waste[0][0]
+
+  return (
+    <div className="dash-shell">
+      <Sidebar />
+
+      <main className="insights-page">
+        <header className="pw-heading">
+          <div>
+            <h1>Prior wastes</h1>
+            <p>Understand your habits, waste less, save more.</p>
+          </div>
+          <div className="pw-periods" role="group" aria-label="Time period">
+            {PERIODS.map(item => (
+              <button
+                type="button"
+                key={item.key}
+                className={item.key === period ? 'is-active' : ''}
+                aria-pressed={item.key === period}
+                onClick={() => setPeriod(item.key)}
+              >
+                {item.label}
+              </button>
             ))}
+          </div>
+        </header>
+
+        <p className="pw-sample">
+          <span>Sample data</span> Waste tracking is coming soon, so these numbers are examples.
+        </p>
+
+        <section className="pw-hero" aria-label="Summary">
+          <div className="pw-hero-text">
+            <span className="pw-kicker">Food wasted {info.phrase}</span>
+            <div className="pw-big">
+              {data.wasted} <small>lbs</small>
+            </div>
+            <p>
+              That is {wastedShare}% of the food you tracked, worth about ${data.cost.toFixed(2)}.
+            </p>
+            <span className={`pw-trend ${better ? 'pw-trend--good' : 'pw-trend--bad'}`}>
+              {better ? '↓' : '↑'} {Math.abs(data.change)}% {better ? 'less' : 'more'} than the period before
+            </span>
+          </div>
+
+          <div className="pw-hero-split">
+            <div
+              className="pw-split-bar"
+              role="img"
+              aria-label={`${100 - wastedShare}% eaten, ${wastedShare}% wasted`}
+            >
+              <span className="pw-split-eaten" style={{ width: `${100 - wastedShare}%` }} />
+              <span className="pw-split-wasted" style={{ width: `${wastedShare}%` }} />
+            </div>
+            <div className="pw-split-legend">
+              <span><i className="pw-dot pw-dot--eaten" /> Eaten <strong>{data.eaten} lbs</strong></span>
+              <span><i className="pw-dot pw-dot--wasted" /> Wasted <strong>{data.wasted} lbs</strong></span>
+            </div>
+          </div>
+        </section>
+
+        <section className="pw-kpis" aria-label="Key numbers">
+          <article>
+            <span>Items purchased</span>
+            <strong>{data.purchased}</strong>
+          </article>
+          <article>
+            <span>Money wasted</span>
+            <strong>${data.cost.toFixed(2)}</strong>
+          </article>
+          <article>
+            <span>Biggest source of waste</span>
+            <strong>{topWaste}</strong>
+          </article>
+        </section>
+
+        <div className="pw-columns">
+          <section className="pw-card">
+            <h2>Where waste comes from</h2>
+            <p>Share of wasted food by category</p>
+            <Bars rows={data.waste} />
+          </section>
+
+          <section className="pw-card">
+            <h2>What you buy</h2>
+            <p>Share of purchases by category</p>
+            <Bars rows={data.bought} />
+          </section>
         </div>
-    );
-}
 
-export default function PriorWastes(){
-const [loading, setLoading] = useState(true);
-const[wasteData, setWasteData] = useState(null);
-const [totalWasted, setTotalWasted] = useState(100);
-const [selectedPeriod, setSelectedPeriod] = useState("This Month");
-    return (
-        <div className="dash-shell">
-            <Sidebar />
+        <section className="pw-card">
+          <h2>Most frequently bought</h2>
+          <p>Your regulars, a good place to buy just a bit less</p>
+          <Bars rows={data.frequent} unit="×" />
+        </section>
 
-            <main className="insights-page">
-                <header className="insights-heading">
-                    <div>
-                        <h1>Prior Wastes</h1>
-                        <p>
-                            Understand your habits. Waste less. Save more.
-                        </p>
-                    </div>
-
-                    <select
-                    value={selectedPeriod}
-                    onChange={(e) => setSelectedPeriod(e.target.value)}
-                    >
-                        <option>This week</option>
-                        <option>This month</option>
-                        <option>Last 3 months</option>
-                        <option>This year</option>
-                    </select>
-                </header>
-
-                <section className="insights-stats">
-                    <article className="insight-stat-card">
-                        <span className="stat-icon">🗑️</span>
-                        <span className="stat-label">Food wasted</span>
-                        <strong>{foodStats.wasted}</strong>
-                        <span className="stat-note">
-                            {selectedPeriod}
-                        </span>
-                    </article>
-
-                    <article className="insight-stat-card">
-                        <span className="stat-icon">🍴</span>
-                        <span className="stat-label">Food eaten</span>
-                        <strong>{foodStats.consumed}</strong>
-                        <span className="stat-note">
-                            {selectedPeriod}
-                        </span>
-                    </article>
-
-                    <article className="insight-stat-card">
-                        <span className="stat-icon">🛒</span>
-                        <span className="stat-label">Items purchased</span>
-                        <strong>{foodStats.purchased}</strong>
-                        <span className="stat-note">
-                            {selectedPeriod}
-                        </span>
-                    </article>
-
-                    <article className="insight-stat-card">
-                        <span className="stat-icon">💵</span>
-                        <span className="stat-label">Waste cost</span>
-                        <strong>{foodStats.wasteCost}</strong>
-                        <span className="stat-note">Estimated value</span>
-                    </article>
-                </section>
-
-                <section className="insights-card main-breakdown">
-                    <div className="insights-card-heading">
-                        <div>
-                            <h2>Your Food Breakdown</h2>
-                            <p>How your recorded food was used</p>
-                        </div>
-                        <span className="insight-tag">{selectedPeriod}</span>
-                    </div>
-
-                    <div className="main-chart-layout">
-                        <DonutChart
-                        data={foodBreakdown}
-                        centerValue={`${foodBreakdown[0].value}%`}
-                        centerLabel="Consumed"
-                        />
-                        <div className="main-chart-details">
-                            {foodBreakdown[0].value > foodBreakdown[1].value ? (
-                                <>
-                                <h3>You're making progress!</h3>
-                                <p>Most of your recorded food was consumed instead of wasted!</p>
-                                </>
-                            ) : (
-                                <>
-                                <h3>There is room for improvement!</h3>
-                                <p>Most of your recorded food was wasted instead of consumed.</p>
-                                </>
-                            )
-                                }
-                            
-                            <ChartLegend data={foodBreakdown} />
-                        </div>
-                    </div>
-                </section>
-
-                <section className="category-chart-grid">
-                    <article className="insights-card category-chart-card">
-                        <div className="insights-card-heading">
-                            <div>
-                                <h2>Waste by Category</h2>
-                                <p>Where your waste comes from</p>
-                            </div>
-                        </div>
-
-                        <DonutChart
-                        data={wasteCategories}
-                        centerValue={totalWasted}
-                        centerLabel="Items"
-                        />
-
-                        <ChartLegend data={wasteCategories} />
-                    </article>
-
-                    <article className="insights-card category-chart-card">
-                        <div className="insights-card-heading">
-                            <div>
-                                <h2>Shopping Habits</h2>
-                                <p>Purchases by food category</p>
-                            </div>
-                        </div>
-
-                        <DonutChart
-                        data={purchaseCategories}
-                        centerValue="100"
-                        centerLabel="Purchases"
-                        />
-                        <ChartLegend data={purchaseCategories} />
-                    </article>
-                </section>
-
-                <section className="insights-card frequent-foods-card">
-                    <div className="insights-card-heading">
-                        <div>
-                            <h2>Most Frequently Purchased</h2>
-                            <p>Your grocery shopping favorites</p>
-                        </div>
-                    </div>
-
-                    <div className="frequent-foods-list">
-                        {frequentFoods.map((food) => (
-                            <div className="frequent-food-row"
-                            key={food.name}>
-
-                                <div className="frequent-food-info">
-                                    <strong>{food.name}</strong>
-                                    <span>Purchased {food.purchases} times </span>
-                                </div>
-
-                                <div className="purchase-bar">
-                                    <div className="purchase-bar-fill"
-                                    style={{
-                                        width: `${(food.purchases / 12) * 100}%`
-                                    }}
-                                    />
-                                </div>
-
-                                <strong className="purchase-count">
-                                    {food.purchases}
-                                </strong>
-                                </div>
-                        ))}
-                    </div>
-                </section>
-            </main>
-        </div>
-    );
+        <section className="pw-act" aria-label="Ways to waste less">
+          <div>
+            <h2>Waste less next week</h2>
+            <p>
+              {topWaste} is where most of your waste comes from. Cook it first and
+              buy a little less of it next trip.
+            </p>
+          </div>
+          <div className="pw-act-buttons">
+            <button type="button" onClick={() => navigate('/recipes')}>Cook what expires first</button>
+            <button type="button" className="is-ghost" onClick={() => navigate('/shoppinglist')}>Plan a smarter list</button>
+          </div>
+        </section>
+      </main>
+    </div>
+  )
 }
