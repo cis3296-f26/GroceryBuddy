@@ -11,3 +11,5 @@ class GroceryItemSerializer(serializers.ModelSerializer):
             "expiration_date", "storage_location", "user",
         )
         read_only_fields = ("id", "user")
+        # Leave category out to have the matcher pick it from the name.
+        extra_kwargs = {"category": {"required": False}}

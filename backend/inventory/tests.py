@@ -1,5 +1,9 @@
+from unittest.mock import patch
+
 from django.contrib.auth import get_user_model
 from rest_framework.test import APIClient, APITestCase
+
+from grocery_buddy.ai import AIUnavailable
 
 from .models import GroceryItem
 
@@ -94,3 +98,29 @@ class GroceryItemAPITests(APITestCase):
         response = client.post(self.url, self.payload, HTTP_X_CSRFTOKEN=token)
         self.assertEqual(response.status_code, 201)
         self.assertEqual(GroceryItem.objects.get(pk=response.data["id"]).user, self.user)
+
+    def test_missing_category_is_matched_from_name(self):
+        with patch("inventory.views.match_food", return_value="Dairy") as match:
+            response = self.client.post(self.url, {"name": "Milk"})
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data["category"], "Dairy")
+        match.assert_called_once_with("Milk")
+
+    def test_given_category_skips_matcher(self):
+        with patch("inventory.views.match_food") as match:
+            response = self.client.post(self.url, self.payload)
+        self.assertEqual(response.data["category"], "Dairy")
+        match.assert_not_called()
+
+    def test_ai_failure_still_saves_item(self):
+        with patch("inventory.services.signature_matcher.match_with_ai", side_effect=AIUnavailable()):
+            response = self.client.post(self.url, {"name": "quorn nuggets"})
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data["category"], "Pantry")
+
+    def test_update_without_category_keeps_it(self):
+        own = GroceryItem.objects.create(user=self.user, **self.payload)
+        with patch("inventory.views.match_food") as match:
+            response = self.client.patch(f"{self.url}{own.pk}/", {"quantity": 3})
+        self.assertEqual(response.data["category"], "Dairy")
+        match.assert_not_called()

@@ -8,6 +8,7 @@ from accounts.authentication import SupabaseAuthentication
 
 from .models import GroceryItem
 from .serializers import GroceryItemSerializer
+from .services.signature_matcher import match_food
 
 
 @method_decorator(never_cache, name="dispatch")
@@ -22,4 +23,6 @@ class GroceryItemViewSet(ModelViewSet):
         return GroceryItem.objects.filter(user=self.request.user).order_by("id")
 
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        data = serializer.validated_data
+        category = data.get("category") or match_food(data["name"])
+        serializer.save(user=self.request.user, category=category)
