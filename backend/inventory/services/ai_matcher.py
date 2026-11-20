@@ -1,5 +1,4 @@
-from google import genai
-from google.genai import types
+from grocery_buddy.ai import generate_json
 
 FOOD_TYPES = [
     "Fruit",
@@ -15,29 +14,17 @@ FOOD_TYPES = [
     "Pantry"
 ]
 
-MODEL = "gemini-3.5-flash-lite"
-
-def match_with_ai (food):
-    client = genai.Client()
-    prompt = (
-            "You are an AI assistant that helps users identify food types.\n"
-            "Pick the one food type that you think best matches the given food item from the list below.\n"
-            "If none match, specify 'None'\n"
-            f"Food item: {food}\n"
-            f"Food types: {', '.join(FOOD_TYPES)}\n"
-            "Don't provide any explanation, just return the food type.")
-    
-    response = client.models.generate_content(
-        model=MODEL,
-        contents=prompt,
-        config=types.GenerateContentConfig(
-            temperature=0.2,
-            max_output_tokens=50,
-        ),
-    )
-
-    
-    return response.text
+def match_with_ai(food):
+    prompt = "\n".join([
+        "You are an AI assistant that helps users identify food types.",
+        "Pick the one food type that best matches the given food item from the list below.",
+        f"Food item: {food}",
+        f"Food types: {', '.join(FOOD_TYPES)}",
+        'Return only JSON, like {"category": "Vegetable"}. If none match, use {"category": null}.',
+    ])
+    result = generate_json(prompt, temperature=0.2, max_output_tokens=50)
+    category = result.get("category") if isinstance(result, dict) else None
+    return category if category in FOOD_TYPES else None
 
 if __name__ == "__main__":
     for name in ["baby spinach", "chicken thighs", "dragon fruit"]:
