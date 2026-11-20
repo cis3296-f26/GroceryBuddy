@@ -59,6 +59,30 @@
     font-size: 17px;
 }
 
+.shopping-totals{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.shopping-totals > div {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.shopping-totals strong {
+    font-size: 31px;
+    font-weight: 650;
+}
+
+.totals-divider{
+    width: 1px;
+    height: 40px;
+    background: #dce5d8;
+}
+
 .primary-button{
     display: inline-flex;
     align-items: center;

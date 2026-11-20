@@ -5,6 +5,7 @@ import Onboarding from './pages/Onboarding.jsx'
 import Dashboard from './pages/Dashboard.jsx'
 import ShoppingList from './pages/ShoppingList.jsx'
 import AuthCallback from './pages/AuthCallback.jsx'
+import PriorWastes from './pages/PriorWastes.jsx'
 import { useAuth } from './supabase'
 import './App.css'
 
@@ -20,6 +21,7 @@ function PageRoutes({ location }) {
       <Route path="/dashboard" element={session ? <Dashboard key={session.user.id} /> : <Navigate to="/" replace />} />
       <Route path="/auth/callback" element={<AuthCallback />} />
       <Route path="/shoppinglist" element={<ShoppingList/>}/>
+      <Route path="/priorwastes" element={session ? <PriorWastes /> : <Navigate to="/" replace />} />
     </Routes>
   )
 }

@@ -75,11 +75,21 @@ export default function ShoppingList(){
         0
     );
 
+    const checkedTotal = items.reduce(
+        (sum, item) =>
+            item.checked ? sum + (Number(item.price) || 0) : sum,
+        0
+    )
+;
     const visibleItems = useMemo(() => {
-        return activeCategory === "All Items"
-        ? items
-        :items.filter((item) => item.category === activeCategory);
-    }, [items, activeCategory]);
+        let filteredItems = activeCategory === "All Items"
+        ? items: items.filter((item) => item.category === activeCategory);
+
+        if(shoppingMode){
+            filteredItems = filteredItems.filter((item) => !item.checked);
+        }
+        return filteredItems;
+    }, [items, activeCategory, shoppingMode]);
 
     const groupedItems = categories.slice(1)
         .map((category) => ({
@@ -368,13 +378,33 @@ suggestions.forEach((suggestion) => {
                         </div>
 
                         <div className="progress-divider"/>
-                        <span className="estimated-label">
-                            Estimated Total
-                        </span>
 
+
+                       {shoppingMode ? (
+                        <div className="shopping-totals">
+                            <div>
+                                <span className="estimated-label">Check Items</span>
+                                <strong>${checkedTotal.toFixed(2)}</strong>
+                            </div>
+
+                            <span className="totals-divider"></span>
+
+                            <div>
+                                <span className="estimated-label">Estimated Total</span>
+                                <strong className="estimated-total">
+                                    ${estimatedTotal.toFixed(2)}
+                                </strong>
+                            </div>
+                        </div>
+                       ) : (
+                        <>
+                        <span className="estimated-label">Estimated Total</span>
                         <strong className="estimated-total">
                             ${estimatedTotal.toFixed(2)}
                         </strong>
+                        </>
+                       )
+                    }
                     </section>
 
                     <section className="quick-actions-card">
@@ -406,6 +436,7 @@ suggestions.forEach((suggestion) => {
                             {shoppingMode && (
                                 <p className="shopping-mode-note">
                                     Shopping mode is on. Check off each item as you shop!
+                                    Items will clear automatically in this mode.
                                 </p>
                             )}
                     </section>

@@ -6,7 +6,7 @@ function Sidebar({ setEditor, signOut}){
     const navigate = useNavigate();
     const location = useLocation();
 
- const NAV_ITEMS = ['Dashboard', 'Add item', 'Recipe ideas', 'Settings']
+const NAV_ITEMS = ['Dashboard', 'Add item', 'Shopping list', 'Recipe ideas', 'Prior Wastes', 'Settings']
 
     return (
       <aside className="dash-sidebar">
@@ -20,28 +20,29 @@ function Sidebar({ setEditor, signOut}){
           <button
             type="button"
             key={label}
-            className={`dash-nav-item${location.pathname === '/dashboard' && label === 'Dashboard' ? ' active' : ''}`}
+            className={`dash-nav-item${(label === 'Dashboard' && window.location.pathname === '/dashboard') ||
+            (label === 'Prior Wastes' && window.location.pathname === '/priorwastes') ||
+            (label === 'Shopping list' && window.location.pathname === '/shoppinglist') ? ' active' : ''}`}
+            aria-current={
+            window.location.pathname === '/dashboard' && label === 'Dashboard' || 
+            window.location.pathname === '/priorwastes' && label === 'Prior Wastes' ||
+            window.location.pathname === '/shoppinglist' && label === 'Shopping list'
+            ? 'page'
+            :undefined
+            }
             onClick={() => {
-              if (label === 'Dashboard') navigate('/dashboard');
+              if(label === 'Dashboard') navigate('/dashboard');
+            else if(label === 'Shopping list') navigate('/shoppinglist');
+            else if(label === 'Prior Wastes') navigate('/priorwastes');
+            else if (label === 'Add item') setEditor({item: null});
             }}
           >
             <span className="dash-nav-dot" />
             {label}
-            {label !== 'Dashboard' && (
-              <span className="dash-nav-badge">Soon</span>
-            )}
+            {!['Dashboard', 'Add item', 'Shopping list', 'Prior Wastes'].includes(label) && <span className="dash-nav-badge">Soon</span>}
           </button>
         ))}
       </nav>
-
-      <button
-        type="button"
-        className={`dash-nav-item${location.pathname === '/shoppinglist' ? ' active' : ''}`}
-        onClick={() => navigate('/shoppinglist')}
-      >
-        <span className="dash-nav-dot" />
-        Shopping List
-      </button>
 
         {signOut && (
          <button type="button" className="dash-nav-item" onClick={signOut}>
