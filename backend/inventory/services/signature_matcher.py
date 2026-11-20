@@ -1,6 +1,6 @@
 import re
 
-from ai_matcher import match_with_ai
+from .ai_matcher import match_with_ai
 
 SIGNATURES = {
     "Fruit": [
