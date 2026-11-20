@@ -171,8 +171,9 @@ UptimeRobot checks the health endpoint every 5 minutes to help prevent idle slee
 AI helpers live under `backend/recipes/services/`, `backend/shopping/services/`,
 and `backend/inventory/services/`, so Render includes them when deploying from
 `backend/`. Recipe and shopping generation share the Gemini client boundary in
-`grocery_buddy/ai.py`. Credentials and the model's availability still need a live
-verification with the AI owner.
+`grocery_buddy/ai.py`. Live local verification with the configured Gemini model has succeeded using
+synthetic groceries. AI answer quality still needs review: responses can assume
+precooked ingredients or give inconsistent preparation times despite prompt rules.
 
 The generation endpoints accept `POST` with an empty JSON object (`{}`), using
 the same Supabase bearer token as inventory requests. They read only the signed-in
@@ -196,8 +197,12 @@ missing bearer authentication, 429 for throttling, 502 for invalid AI output, an
 works with CSRF protection. Responses are marked private/no-store.
 
 These routes are implemented locally; Render won't have them until deployment.
-The frontend still needs to be connected to them. No live AI verification has
-been performed.
+The frontend is connected to recipe generation, shopping suggestions, and recipe chat
+through the authenticated API client. Live local checks verified successful recipe,
+shopping, and chat responses, chat history, empty-inventory chat, and authentication
+using an isolated test database and synthetic users.
+Configure `GEMINI_API_KEY` on the backend and deploy both applications to enable
+these changes in production. Never expose the Gemini key in frontend variables.
 
 Run matcher tests without a database or Gemini requests:
 
@@ -225,3 +230,13 @@ Tests mock Gemini and must never target the shared application's database.
 | `/api/shopping/generate/` | Authenticated shopping suggestions (POST) |
 
 The bare recipe and shopping prefixes still return 404; use their `generate/` routes.
+
+### Recipe assistant chat
+
+`POST /api/recipes/chat/` accepts `{"message": "What can I cook?", "history": []}`
+and returns `{"reply": "..."}`. Messages are limited to 500 characters and history
+to 10 user/assistant messages of at most 6000 characters each. The server reads
+only the authenticated user's active inventory, excludes items past their use-by
+date, and shares the generation throttle and error handling above. General
+questions work with empty inventory. Chat history stays in the current page;
+it is sent as conversational context and is not saved by the backend.

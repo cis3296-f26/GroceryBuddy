@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { api } from '../api'
 
 /*
- * Backend contract (to be implemented):
+ * Backend contract:
  *
  *   POST /api/recipes/chat/        (Authorization: Bearer <supabase token>)
  *   Request:  { "message": string (1-500 chars),
@@ -88,7 +88,7 @@ function RecipeChat() {
           <p>Ask about recipes, substitutions, storage, or what to cook next.</p>
         </div>
         {messages.length > 0 && (
-          <button type="button" className="chat-clear" onClick={() => { setMessages([]); setError('') }}>
+          <button type="button" className="chat-clear" disabled={loading} onClick={() => { setMessages([]); setError('') }}>
             Clear chat
           </button>
         )}
