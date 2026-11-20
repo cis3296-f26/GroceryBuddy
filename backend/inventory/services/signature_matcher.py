@@ -1,6 +1,10 @@
 import re
 
-from ai_matcher import match_with_ai
+from rest_framework.exceptions import APIException
+
+from .ai_matcher import match_with_ai
+
+DEFAULT_CATEGORY = "Pantry"
 
 SIGNATURES = {
     "Fruit": [
@@ -97,4 +101,8 @@ def match_food(food):
         if category:
             return category
 
-    return match_with_ai(food).strip()
+    # A wrong category is better than a lost grocery, so never fail here
+    try:
+        return match_with_ai(food) or DEFAULT_CATEGORY
+    except APIException:
+        return DEFAULT_CATEGORY

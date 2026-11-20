@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useContext } from 'react'
 import { createClient } from '@supabase/supabase-js'
+import { AuthContext } from './auth-context'
 
 export const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY,
+  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY,
 )
 
 export function signInWithGoogle() {
@@ -13,15 +14,11 @@ export function signInWithGoogle() {
   })
 }
 
-// undefined while loading, null when logged out, otherwise the session.
+// One shared subscription; undefined while loading, null when signed out.
 export function useSession() {
-  const [session, setSession] = useState(undefined)
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setSession(data.session))
-    const { data } = supabase.auth.onAuthStateChange((_event, next) =>
-      setSession(next),
-    )
-    return () => data.subscription.unsubscribe()
-  }, [])
-  return session
+  return useContext(AuthContext).session
+}
+
+export function useAuth() {
+  return useContext(AuthContext)
 }

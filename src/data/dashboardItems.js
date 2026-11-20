@@ -1,4 +1,3 @@
-// Placeholder data source for the dashboard — swap for a real fridge-items API later.
 export const CATEGORIES = [
   { key: 'useToday', label: 'Use Today', tone: 'today' },
   { key: 'useSoon', label: 'Use Soon', tone: 'soon' },
@@ -6,16 +5,19 @@ export const CATEGORIES = [
   { key: 'pastEstimate', label: 'Past Estimate', tone: 'past' },
 ]
 
-export function getSampleFridgeItems() {
-  return [
-    { id: 'milk', name: 'Milk', icon: '🥛', location: 'Fridge', detail: 'Opened 5 days ago', category: 'useToday' },
-    { id: 'spinach', name: 'Spinach', icon: '🥬', location: 'Fridge', detail: 'Bought 4 days ago', category: 'useToday' },
-    { id: 'yogurt', name: 'Yogurt', icon: '🥣', location: 'Fridge', detail: 'Bought 5 days ago', category: 'useSoon' },
-    { id: 'cheese', name: 'Cheese', icon: '🧀', location: 'Fridge', detail: 'Opened 6 days ago', category: 'useSoon' },
-    { id: 'eggs', name: 'Eggs', icon: '🥚', location: 'Fridge', detail: 'Bought 8 days ago', category: 'useSoon' },
-    { id: 'bread', name: 'Bread', icon: '🍞', location: 'Pantry', detail: 'Bought 2 days ago', category: 'goodForNow' },
-    { id: 'apples', name: 'Apples', icon: '🍎', location: 'Fridge', detail: 'Bought 3 days ago', category: 'goodForNow' },
-    { id: 'rice', name: 'Leftover rice', icon: '🍱', location: 'Fridge', detail: 'Cooked yesterday', category: 'goodForNow' },
-    { id: 'oatmilk', name: 'Oat milk', icon: '🥛', location: 'Fridge', detail: 'Opened 12 days ago', category: 'pastEstimate' },
-  ]
+export const FOOD_CATEGORIES = ['Fruit', 'Vegetable', 'Grain', 'Protein', 'Dairy', 'Eggs', 'Seafood', 'Beverage', 'Meat', 'Bread', 'Pantry']
+export const STORAGE_LOCATIONS = ['fridge', 'freezer', 'pantry']
+
+export function localDate(now = new Date()) {
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+}
+
+export function freshness(item, today = localDate()) {
+  if (!item.expiration_date) return 'goodForNow'
+  // Calendar-day arithmetic avoids timezone offsets and daylight-saving transitions.
+  const days = (Date.parse(item.expiration_date) - Date.parse(today)) / 86400000
+  if (days < 0) return 'pastEstimate'
+  if (days === 0) return 'useToday'
+  if (days <= 3) return 'useSoon'
+  return 'goodForNow'
 }

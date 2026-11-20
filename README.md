@@ -141,14 +141,87 @@ Open the address shown in the terminal, usually http://localhost:5173. Vite forw
 
 Press `Ctrl+C` in each terminal to stop its server. React updates as frontend files change; Django reloads when backend Python files change.
 
+## Backend Deployment
+
+The backend is hosted on Render Free at https://grocerybuddy-q2vi.onrender.com. Deploy from `main` with root directory `backend`:
+
+- **Build:** `pip install -r requirements.txt`
+- **Start:** `python manage.py migrate --noinput && gunicorn grocery_buddy.wsgi:application --bind 0.0.0.0:$PORT`
+- **Health check:** `/api/health/` (returns `{"status": "ok"}`; does not test database connectivity).
+
+Set these environment variables in Render:
+
+| Variable | Value |
+| --- | --- |
+| `DATABASE_URL` | Supabase PostgreSQL session-pooler connection string |
+| `SECRET_KEY` | Generated secret; keep private |
+| `DEBUG` | `False` |
+| `ALLOWED_HOSTS` | `grocerybuddy-q2vi.onrender.com` |
+| `GOOGLE_CLIENT_ID` | Google OAuth web client ID |
+| `CSRF_TRUSTED_ORIGINS` | `https://grocerypal-three.vercel.app,https://grocerybuddy-q2vi.onrender.com` |
+| `SUPABASE_URL` | Same Supabase project URL as the frontend |
+| `SUPABASE_PUBLISHABLE_KEY` | Supabase publishable or anon key for token verification |
+| `GEMINI_API_KEY` | Private Gemini key (`GOOGLE_API_KEY` is also supported) |
+| `GEMINI_MODEL` | Model ID agreed with the AI owner; defaults to `gemini-3.5-flash-lite` |
+
+UptimeRobot checks the health endpoint every 5 minutes to help prevent idle sleep. Free services can still restart. Keep credentials out of this README and Git.
+
+## AI Generation
+
+AI helpers live under `backend/recipes/services/`, `backend/shopping/services/`,
+and `backend/inventory/services/`, so Render includes them when deploying from
+`backend/`. Recipe and shopping generation share the Gemini client boundary in
+`grocery_buddy/ai.py`. Credentials and the model's availability still need a live
+verification with the AI owner.
+
+The generation endpoints accept `POST` with an empty JSON object (`{}`), using
+the same Supabase bearer token as inventory requests. They read only the signed-in
+user's active groceries (quantity greater than zero); client-supplied ingredients,
+history, and owner IDs are rejected. They don't save generated suggestions.
+
+- `/api/recipes/generate/` returns `{"recipes": [...]}` with `name`, `time_minutes`,
+  `uses`, `ingredients`, and `steps` for each recipe. Items past their explicit or
+  estimated use-by date are excluded; remaining items are prioritized by urgency.
+- `/api/shopping/generate/` returns `{"items": [...], "history_available": false,
+  "detail": "..."}`. Each suggestion has `name`, `category`, `quantity`, and `reason`.
+  Suggestions currently use inventory only. Used/Tossed history is not recorded yet.
+
+Both routes cap inventory input at 100 active items, share a per-user throttle of
+5 requests per minute, and use a 20-second provider timeout without automatic
+retries. The default Django cache makes throttling local to each process; a shared
+cache is needed for a service-wide limit across multiple workers/instances.
+Errors use JSON `detail`: 400 for invalid input or no usable groceries, 401 for
+missing bearer authentication, 429 for throttling, 502 for invalid AI output, and
+503 for missing credentials/SDK or provider failures. Session authentication also
+works with CSRF protection. Responses are marked private/no-store.
+
+These routes are implemented locally; Render won't have them until deployment.
+The frontend still needs to be connected to them. No live AI verification has
+been performed.
+
+Run matcher tests without a database or Gemini requests:
+
+```bash
+backend/.venv/bin/python -m unittest discover -s test
+```
+
+For backend tests, set `TEST_DATABASE_URL` to a dedicated local PostgreSQL server,
+then run (from `backend/`):
+
+```bash
+python manage.py test --settings=grocery_buddy.test_settings
+```
+
+Tests mock Gemini and must never target the shared application's database.
+
 ## API Routing
 
 | Path | Status |
 | --- | --- |
 | `/api/health/` | Returns `{"status": "ok"}` |
 | `/api/accounts/` | Reserved for account endpoints |
-| `/api/inventory/` | Reserved for inventory endpoints |
-| `/api/recipes/` | Reserved for recipe endpoints |
-| `/api/shopping/` | Reserved for shopping endpoints |
+| `/api/inventory/items/` | Authenticated inventory CRUD |
+| `/api/recipes/generate/` | Authenticated recipe generation (POST) |
+| `/api/shopping/generate/` | Authenticated shopping suggestions (POST) |
 
-Reserved routes currently return 404 until their endpoints are implemented.
+The bare recipe and shopping prefixes still return 404; use their `generate/` routes.

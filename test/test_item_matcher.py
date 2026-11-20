@@ -1,28 +1,21 @@
 import sys
 import unittest
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
-# Let the tests import from src/food_matcher
-sys.path.insert(0, str(Path(__file__).parent.parent / "src" / "food_matcher"))
+# Import the same service packages available when Django runs from backend/
+sys.path.insert(0, str(Path(__file__).parent.parent / "backend"))
 
-# Use a fake google module if google-genai isn't installed, so the tests still run
-try:
-    import google.genai
-except ImportError:
-    google = MagicMock()
-    sys.modules["google"] = google
-    sys.modules["google.genai"] = google.genai
-
-from ai_matcher import FOOD_TYPES, MODEL, match_with_ai
-from signature_matcher import match_food
+from grocery_buddy.ai import AIUnavailable
+from inventory.services.ai_matcher import FOOD_TYPES, match_with_ai
+from inventory.services.signature_matcher import match_food
 
 
 class TestSignatureMatcher(unittest.TestCase):
 
     def setUp(self):
         # Replace the AI with a fake so no test ever calls Gemini
-        self.ai = patch("signature_matcher.match_with_ai", return_value="Protein").start()
+        self.ai = patch("inventory.services.signature_matcher.match_with_ai", return_value="Protein").start()
         self.addCleanup(patch.stopall)
 
     def test_single_word(self):
@@ -59,9 +52,13 @@ class TestSignatureMatcher(unittest.TestCase):
         self.assertEqual(match_food("quorn nuggets"), "Protein")
         self.ai.assert_called_once_with("quorn nuggets")
 
-    def test_ai_answer_is_stripped(self):
-        self.ai.return_value = " Protein\n"
-        self.assertEqual(match_food("quorn nuggets"), "Protein")
+    def test_no_ai_answer_uses_pantry(self):
+        self.ai.return_value = None
+        self.assertEqual(match_food("quorn nuggets"), "Pantry")
+
+    def test_ai_failure_uses_pantry(self):
+        self.ai.side_effect = AIUnavailable()
+        self.assertEqual(match_food("quorn nuggets"), "Pantry")
 
     def test_only_stop_words_uses_ai(self):
         match_food("fresh organic")
@@ -75,30 +72,30 @@ class TestSignatureMatcher(unittest.TestCase):
 class TestAIMatcher(unittest.TestCase):
 
     def setUp(self):
-        # Replace the Gemini client with a fake that always answers "Vegetable"
-        client_class = patch("ai_matcher.genai.Client").start()
+        # Replace the shared Gemini helper with a fake that always answers "Vegetable"
+        self.generate = patch("inventory.services.ai_matcher.generate_json",
+                              return_value={"category": "Vegetable"}).start()
         self.addCleanup(patch.stopall)
-        self.generate = client_class.return_value.models.generate_content
-        self.generate.return_value.text = "Vegetable"
 
-    def test_returns_ai_answer(self):
+    def test_returns_ai_category(self):
         self.assertEqual(match_with_ai("baby spinach"), "Vegetable")
 
     def test_calls_ai_once(self):
         match_with_ai("baby spinach")
         self.generate.assert_called_once()
 
-    def test_uses_model(self):
+    def test_prompt_includes_food_and_types(self):
         match_with_ai("baby spinach")
-        self.assertEqual(self.generate.call_args.kwargs["model"], MODEL)
-
-    def test_sends_prompt_as_contents(self):
-        match_with_ai("baby spinach")
-        prompt = self.generate.call_args.kwargs.get("contents")
-        self.assertIsNotNone(prompt, "generate_content needs the prompt passed as contents=")
+        prompt = self.generate.call_args.args[0]
         self.assertIn("baby spinach", prompt)
         for food_type in FOOD_TYPES:
             self.assertIn(food_type, prompt)
+
+    def test_invalid_answer_returns_none(self):
+        for result in ({"category": "Candy"}, {"category": None}, {}, ["Vegetable"]):
+            with self.subTest(result=result):
+                self.generate.return_value = result
+                self.assertIsNone(match_with_ai("baby spinach"))
 
 
 if __name__ == "__main__":
