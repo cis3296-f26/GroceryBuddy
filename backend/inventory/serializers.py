@@ -8,7 +8,7 @@ class GroceryItemSerializer(serializers.ModelSerializer):
         model = GroceryItem
         fields = (
             "id", "name", "quantity", "category", "purchase_date",
-            "expiration_date", "storage_location", "user",
+            "expiration_date", "storage_location", "unit", "status", "user",
         )
         read_only_fields = ("id", "user")
         # Leave category out to have the matcher pick it from the name.

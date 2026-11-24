@@ -19,12 +19,25 @@ USE_SOON_DAYS = 3  # 1 to 3 days left counts as "Use Soon" (same as the dashboar
 
 
 def find_food_type(name):
-    """Finds the FoodType that matches a grocery name, like "milk" or "Apple"."""
+    """Finds the FoodType that matches a grocery name, like "milk" or "potato"."""
     clean_name = name.strip()  # remove extra spaces at the start and end
-    food = FoodType.objects.filter(name__iexact=clean_name).first()  # exact match, ignoring capital letters
-    if food is None:  # no exact match
-        food = FoodType.objects.filter(name__iexact=clean_name + "s").first()  # try plural, so "apple" finds "Apples"
-    return food  # the FoodType, or None if we don't know this food
+
+    # Different ways the same food could be spelled in our table
+    names_to_try = [
+        clean_name,  # same as typed, like "Milk"
+        clean_name + "s",  # add s: "apple" -> "apples"
+        clean_name + "es",  # add es: "potato" -> "potatoes"
+    ]
+    if clean_name.lower().endswith("y"):  # words like "strawberry"
+        names_to_try.append(clean_name[:-1] + "ies")  # "strawberry" -> "strawberries"
+    if clean_name.lower().endswith("s"):  # words like "yogurts"
+        names_to_try.append(clean_name[:-1])  # drop the s: "yogurts" -> "yogurt"
+
+    for try_name in names_to_try:  # check each spelling
+        food = FoodType.objects.filter(name__iexact=try_name).first()  # look it up, ignoring capital letters
+        if food is not None:  # found a match
+            return food
+    return None  # we don't know this food
 
 
 def shelf_life_days(food_type, storage_location):
