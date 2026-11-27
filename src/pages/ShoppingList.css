@@ -428,6 +428,101 @@
   font-size: 19px;
 }
 
+.progress-card{
+  padding: 30px 28px 26px;
+  color: #fff;
+  background: linear-gradient(145deg, #185a41, #104a36);
+  border-radius: 25px;
+  box-shadow: 0 4px 10px rgba(17, 68, 48, .1);
+}
+
+.progress-card h2{
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    margin: 0;
+    font-size: 16px;
+    font-weight: 650;
+}
+
+.progress-card h2 span{
+  font-size: 22px;
+}
+
+.progress-summary{
+  display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 23px 0 14px;
+}
+
+.progress-summary > div:first-child{
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.progress-summary strong{
+font-size: 34px;
+line-height: 1.1;
+font-weight: 650;
+white-space: nowrap;
+}
+
+.progress-summary > div:first-child span{
+  color: #c1e63d;
+  font-size: 15px;
+}
+
+.progress-ring{
+  display: grid;
+  place-items: center;
+  width: 105px;
+  height: 105px;
+  flex: 0 0 105px;
+  padding: 9px;
+  background: conic-gradient(
+    #b9e33c var(--progress),
+    rgba(255,255,255,.28) 0
+  );
+  border-radius: 50%;
+  transform: rotate(-8deg);
+}
+
+.progress-ring > div {
+  display: grid;
+    place-items: center;
+    width: 100%;
+    height: 100%;
+    color: #fff;
+    background: #18563f;
+    border-radius: 50%;
+    font-size: 20px;
+    font-weight: 700;
+    transform: rotate(8deg);
+}
+
+.progress-divider{
+  height: 1px;
+  margin: 12px 0;
+  background: rgba(255,255,255, 0.22);
+}
+
+.estimated-label{
+  display: block;
+  color: rgba(255,255,255,.9);
+  font-size: 14px;
+}
+
+.estimated-total{
+  display: block;
+  margin-top: 3px;
+  font-size: 31px;
+  line-height: 1.1;
+  font-weight: 650;
+}
+
 @media (max-width: 800px) {
   .dash-shell > .shopping-page {
     padding: 24px 16px 48px;

@@ -23,7 +23,10 @@ export default function GroceryForm({ item, onSave, onCancel }) {
     } catch (error) { setError(error.message) }
     finally { setSaving(false) }
   }
-  return <section className="dash-editor" aria-label={item ? `Edit ${item.name}` : 'Add grocery item'}>
+  return (
+
+ <div className="dash-modal-overlay" onClick={onCancel}>
+  <section className="dash-editor" aria-label={item ? `Edit ${item.name}` : 'Add grocery item'} role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
     <form onSubmit={submit}>
       <fieldset disabled={saving}>
         <legend>{item ? 'Edit grocery item' : 'Add grocery item'}</legend>
@@ -36,9 +39,11 @@ export default function GroceryForm({ item, onSave, onCancel }) {
         {error && <p role="alert">{error}</p>}
         <div className="dash-editor-actions">
           <button type="submit" className="dash-add">{saving ? 'Saving…' : 'Save item'}</button>
-          <button type="button" onClick={onCancel}>Cancel</button>
+          <button type="button" className="dash-cancel" onClick={onCancel}>Cancel</button>
         </div>
       </fieldset>
     </form>
   </section>
+  </div>
+   );
 }

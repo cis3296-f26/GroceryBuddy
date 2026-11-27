@@ -39,7 +39,7 @@ header {
   color: #7c8779;
 }
 
-main:not(.shopping-page) {
+main:not(.shopping-page):not(.settings-main):not(.insights-page):not(.recipes-page):not(.dash-main) {
   display: grid;
   grid-template-columns: 45% 55%;
   min-height: calc(100svh - 100px);

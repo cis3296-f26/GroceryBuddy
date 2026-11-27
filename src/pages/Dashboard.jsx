@@ -102,11 +102,20 @@ function Dashboard() {
       {loading && <p role="status">Loading groceries…</p>}
       {error && <p role="alert">{error} <button type="button" onClick={retry}>Retry</button></p>}
       {actionError && <p role="alert">{actionError}</p>}
-      <div ref={editorRef} className="dash-editor-slot">
+      {/* <div ref={editorRef} className="dash-editor-slot">
         {editor && <div className="dash-editor-slide" key={editor.item?.id || 'new'}>
           <GroceryForm item={editor.item} onSave={save} onCancel={() => setEditor(null)} />
         </div>}
-      </div>
+      </div> */}
+      {editor && (
+        <GroceryForm
+          item={editor.item}
+          onSave={save}
+          onCancel={() => setEditor(null)}
+          />
+        
+      )}
+
       {!loading && !error && available.length === 0 && <p role="status">Your inventory is empty. Add your first grocery item.</p>}
       {!loading && !error && available.length > 0 && visible.length === 0 && <p role="status">No groceries match your search.</p>}
       <div className="dash-columns" aria-busy={loading}>
