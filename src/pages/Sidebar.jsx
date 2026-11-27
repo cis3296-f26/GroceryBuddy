@@ -10,8 +10,9 @@ const ROUTES = {
   'Shopping list': '/shoppinglist',
   'Recipe ideas': '/recipes',
   'Prior Wastes': '/priorwastes',
+  'Settings': '/settings'
 }
-const LIVE_ITEMS = ['Dashboard', 'Add item', 'Shopping list', 'Recipe ideas', 'Prior Wastes']
+const LIVE_ITEMS = ['Dashboard', 'Add item', 'Shopping list', 'Recipe ideas', 'Prior Wastes', 'Settings']
 const STORAGE_KEY = 'gb_sidebar_collapsed'
 
 function readCollapsed() {

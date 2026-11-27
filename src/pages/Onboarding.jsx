@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
+import { useEffect } from "react";
 import { supabase } from '../supabase'
 import '../App.css'
 
@@ -151,13 +152,21 @@ function Onboarding() {
   const googleName = useLocation().state?.googleName
   const fromGoogle = googleName !== undefined
   const [step, setStep] = useState(fromGoogle ? 1 : 0)
-  const [answers, setAnswers] = useState(
-    fromGoogle ? { name: googleName } : {},
+  const [answers, setAnswers] = useState(() => {
+    const savedAnswers = localStorage.getItem("groceryBuddyAnswers");
+    if(savedAnswers){
+      return JSON.parse(savedAnswers);
+    }
+   return fromGoogle ? { name: googleName } : {};
+
+  }
   )
   const [units, setUnits] = useState({ height: 'cm', weight: 'lb' })
   const [details, setDetails] = useState({})
   const [error, setError] = useState('')
-  const [finished, setFinished] = useState(false)
+  const [finished, setFinished] = useState(() => {
+    return new URLSearchParams(window.location.search).get("mode")==="edit";
+  });
   const [editing, setEditing] = useState(false)
   const [warned, setWarned] = useState('')
   const heading = useRef(null)
@@ -235,6 +244,10 @@ function Onboarding() {
               : [...value.filter((item) => item !== 'None'), option],
       })
   }
+
+  useEffect(() => {
+    localStorage.setItem("groceryBuddyAnswers", JSON.stringify(answers));
+  }, [answers]);
 
   return (
     <div className="app-shell">

@@ -7,6 +7,7 @@ import ShoppingList from './pages/ShoppingList.jsx'
 import AuthCallback from './pages/AuthCallback.jsx'
 import PriorWastes from './pages/PriorWastes.jsx'
 import Recipes from './pages/Recipes.jsx'
+import Settings from './pages/Settings.jsx'
 import { useAuth } from './supabase'
 import './App.css'
 
@@ -25,6 +26,7 @@ function PageRoutes({ location }) {
       <Route path="/shoppinglist" element={<ShoppingList/>}/>
       <Route path="/priorwastes" element={session ? <PriorWastes /> : <Navigate to="/" replace />} />
       <Route path="/recipes" element={session ? <Recipes /> : <Navigate to="/" replace />} />
+      <Route path="/settings" element={session ? <Settings /> : <Navigate to="/" replace />} />
     </Routes>
   )
 }
