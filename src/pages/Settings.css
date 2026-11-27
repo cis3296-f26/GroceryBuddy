@@ -1,0 +1,255 @@
+.settings-layout {
+    display: flex;
+    min-height: 100vh;
+    background: #F3F6EF;
+}
+
+.settings-main{
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding:0 45px 40px;
+    box-sizing: border-box;
+}
+
+.settings-header{
+    width: 100%;
+    max-width: 1050px;
+    margin-bottom: 25px;
+}
+
+.settings-header h1 {
+    color: #1E4D3A;
+    font-size: 40px;
+    font-weight: 700;
+    margin: 0 0 8px;
+}
+
+.settings-header p {
+    color: #788674;
+    font-size: 18px;
+    margin: 0;
+}
+
+.settings-content{
+    width: 100%;
+    max-width: 1050px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    margin: 0;
+}
+
+.settings-card{
+    background: #ffffff;
+    border-radius: 20px;
+    padding: 25px 30px;
+    box-shadow: 0 3px 12px rgba(30, 77, 58, 0.05);
+}
+
+.settings-card h2{
+    color: #1E4D3A;
+    font-size: 24px;
+    margin-bottom: 22px;
+    font-weight: 700;
+    margin: 0 0 18px;
+}
+
+.settings-items{
+    display: flex;
+    flex-direction:column;
+}
+
+.settings-item{
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 23px 8px;
+    background: transparent;
+    border: none;
+    text-align: left;
+    cursor: pointer;
+}
+
+.settings-item:last-child{
+    border-bottom: none;
+}
+
+.settings-icon{
+    width: 54px;
+    height: 54px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #EAF1E6;
+    border-radius: 12px;
+    font-size: 25px;
+    flex-shrink: 0;
+}
+
+.settings-item-text{
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.settings-item-text strong{
+    color: #294B39;
+    font-size: 19px;
+    font-weight: 650;
+}
+
+.settings-item-text small {
+    color: #879184;
+    font-size: 16px;
+}
+
+.settings-arrow{
+    color: #8A9885;
+    font-size: 32px;
+}
+
+.settings-item:hover{
+    background: #FAFCF8;
+}
+
+.settings-action{
+    display: block;
+    width: 100%;
+    padding: 15px 5px;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid #EDF0EA;
+    text-align: left;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.settings-action:last-child{
+    border-bottom: none;
+}
+
+.logout-action{
+    color: #477A58;
+}
+
+.delete-action{
+    color: #B85B50;
+}
+
+.settings-action:hover{
+    opacity: 0.75;
+}
+
+.personal-info-details {
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    padding: 0 20px;
+    margin: 0 8px;
+    background: #F3F6EF;
+    border-radius: 12px;
+    color: #1E4D3A;
+    transition: max-height 0.4s ease, opacity 0.3s ease, padding 0.4s ease, margin 0.4s ease;
+}
+
+.personal-info-details.open{
+    max-height: 200px;
+    opacity: 1;
+    padding: 15px 20px;
+    margin: 0 8px 10px;
+}
+
+.personal-info-details p {
+    margin: 8px 0;
+    font-size: 16px;
+}
+
+.personal-info-details p {
+    margin: 8px 0;
+    font-size: 16px;
+}
+
+.delete-modal-overlay{
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    padding: 20px;
+}
+
+.delete-modal{
+   background: #FFFFFF;
+    width: 100%;
+    max-width: 420px;
+    padding: 30px;
+    border-radius: 18px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.18);
+    text-align: center; 
+}
+
+.delete-modal h2 {
+    color: #1E4D3A;
+    margin-top: 0;
+    margin-bottom: 12px;
+}
+
+.delete-modal p {
+    color: #555555;
+    line-height: 1.6;
+    margin-bottom: 25px;
+}
+
+.delete-modal-buttons{
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+}
+
+.delete-modal-buttons button{
+    padding: 11px 18px;
+    border: none;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.cancel-delete-button{
+    background: #E9EEE7;
+    color: #1E4D3A;
+}
+
+.confirm-delete-button{
+    background: #B93838;
+    color: #FFFFFF;
+}
+
+.cancel-delete-button:hover{
+    background: #DCE5D9
+}
+
+.confirm-delete-button:hover{
+    background: #982D2D;
+}
+
+@media(max-width: 768px){
+    .settings-main{
+        padding: 30px 20px;
+    }
+    .settings-card{
+        padding: 20px;
+    }
+    .settings-header h1 {
+        font-size: 27px;
+    }
+}
